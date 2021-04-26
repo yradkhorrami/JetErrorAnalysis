@@ -1,5 +1,2 @@
-#include "JetErrorAnalysis.h"
-#include <stdlib.h>
-#include <cmath>
-#include <iostream>
-#include <iomanip>
+#ifndef JetErrorParametrization_h
+#define JetErrorParametrization_h 1
