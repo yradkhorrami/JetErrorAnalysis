@@ -226,22 +226,51 @@ void JetErrorAnalysis::processEvent( LCEvent* pLCEvent)
 		streamlog_out(DEBUG0) << "	Number of Reconstructed Jets: " << m_nRecoJets << std::endl;
 
 		int njets = trueJet->njets();
+		std::vector<int> trueHadronicJetIndices; trueHadronicJetIndices.clear();
+		std::vector<int> recoJetIndices; recoJetIndices.clear();
 		for (int i_jet = 0 ; i_jet < njets ; i_jet++ )
 		{
 			m_trueJetType.push_back( type_jet( i_jet ) );
 			if ( type_jet( i_jet ) == 1 )
 			{
 				++m_nTrueJets;
+				trueHadronicJetIndices.push_back( i_jet );
 			}
 		}
 		streamlog_out(DEBUG0) << "	Number of True Hadronic Jets(type = 1): " << m_nTrueJets << std::endl;
+		if ( m_nRecoJets == m_nTrueJets )
+		{
+			for ( int i_trueJet = 0 ; i_trueJet < m_nTrueJets ; ++i_trueJet )
+			{
+				TVector3 trueJetMomentum( ptrueseen( trueHadronicJetIndices[ i_trueJet ] )[ 0 ] , ptrueseen( trueHadronicJetIndices[ i_trueJet ] )[ 1 ] , ptrueseen( trueHadronicJetIndices[ i_trueJet ] )[ 2 ] );
+				streamlog_out(DEBUG0) << "	True(seen) Jet Momentum[ " << trueHadronicJetIndices[ i_trueJet ] << " ]: (	" << ptrueseen( trueHadronicJetIndices[ i_trueJet ] )[ 0 ] << " 	, " << ptrueseen( trueHadronicJetIndices[ i_trueJet ] )[ 1 ] << " 	, " << ptrueseen( trueHadronicJetIndices[ i_trueJet ] )[ 2 ] << "	)" << std::endl;
+				TVector3 trueJetMomentumUnit = trueJetMomentum; trueJetMomentumUnit.SetMag(1.0);
+				float widestAngleCosTheta = -1.0;
+				int matchedRecoJetIndex = -1;
+				for ( int i_recoJet = 0 ; i_recoJet < m_nRecoJets ; ++i_recoJet )
+				{
+					ReconstructedParticle *recoJet = dynamic_cast<ReconstructedParticle*>( recoJetCol->getElementAt( i_recoJet ) );
+					TVector3 recoJetMometnum( recoJet->getMomentum() );
+					TVector3 recoJetMometnumUnit = recoJetMometnum; recoJetMometnumUnit.SetMag(1.0);
+					streamlog_out(DEBUG0) << "	Reco Jet Momentum[ " << i_recoJet << " ]: (	" << recoJet->getMomentum()[ 0 ] << " 	, " << recoJet->getMomentum()[ 1 ] << " 	, " << recoJet->getMomentum()[ 2 ] << "	)" << std::endl;
+					if ( trueJetMomentumUnit.Dot( recoJetMometnumUnit ) >= widestAngleCosTheta )
+					{
+						widestAngleCosTheta = trueJetMomentumUnit.Dot( recoJetMometnumUnit );
+						matchedRecoJetIndex = i_recoJet;
+					}
+				}
+				streamlog_out(DEBUG0) << "	True(seen) Jet [ " << trueHadronicJetIndices[ i_trueJet ] << " ] is paired with RecoJet [ " << matchedRecoJetIndex << " ]" << std::endl;
+				recoJetIndices.push_back( matchedRecoJetIndex );
+			}
+
+		}
 		m_nEvtSum++;
 		m_nEvt++ ;
 		m_pTTree->Fill();
 	}
 	catch(DataNotAvailableException &e)
 	{
-		streamlog_out(MESSAGE) << "JetErrorAnalysis : Input collections not found in event " << m_nEvt << std::endl;
+		streamlog_out(MESSAGE) << "	Check : Input collections not found in event " << m_nEvt << std::endl;
 	}
 
 
