@@ -48,6 +48,7 @@ class JetErrorAnalysis : public Processor , public TrueJet_Parser
 		* Use to initialize the processor, e.g. book histograms.
 		*/
 		virtual void init();
+		virtual void Clear();
 
 		/*
 		* Called for every run.
@@ -97,11 +98,11 @@ class JetErrorAnalysis : public Processor , public TrueJet_Parser
 	private:
 
 
+		std::string				m_recoJetCollectionName{};
 		std::string				_MCParticleColllectionName{};
 		std::string				_recoParticleCollectionName{};
 		std::string				_recoMCTruthLink{};
 //		std::string				_trueJetCollectionName{};
-		std::string				_recoJetCollectionName{};
 		std::string				m_outputFile{};
 		TFile					*m_pTFile;
 	        TTree					*m_pTTree;

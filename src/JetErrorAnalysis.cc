@@ -48,31 +48,38 @@ m_pTTree(NULL)
 
 	// Inputs: MC-particles, Reco-particles, the link between the two
 
-	registerInputCollection( LCIO::MCPARTICLE,
-				"MCParticleCollection" ,
-				"Name of the MCParticle collection"  ,
-				_MCParticleColllectionName ,
-				std::string("MCParticlesSkimmed")
+	registerInputCollection( 	LCIO::RECONSTRUCTEDPARTICLE,
+					"RecoJetCollection" ,
+					"Name of the input Reconstructed Jet collection"  ,
+					m_recoJetCollectionName ,
+					std::string("Durham_nJets")
 				);
 
-	registerInputCollection( LCIO::RECONSTRUCTEDPARTICLE,
-				"RecoParticleCollection" ,
-				"Name of the ReconstructedParticles input collection"  ,
-				_recoParticleCollectionName ,
-				std::string("PandoraPFOs")
+	registerInputCollection( 	LCIO::MCPARTICLE,
+					"MCParticleCollection" ,
+					"Name of the MCParticle collection"  ,
+					_MCParticleColllectionName ,
+					std::string("MCParticlesSkimmed")
+					);
+
+	registerInputCollection( 	LCIO::RECONSTRUCTEDPARTICLE,
+					"RecoParticleCollection" ,
+					"Name of the ReconstructedParticles input collection"  ,
+					_recoParticleCollectionName ,
+					std::string("PandoraPFOs")
 				);
 
-	registerInputCollection( LCIO::LCRELATION,
-				"RecoMCTruthLink",
-				"Name of the RecoMCTruthLink input collection"  ,
-				_recoMCTruthLink,
-				std::string("RecoMCTruthLink")
+	registerInputCollection( 	LCIO::LCRELATION,
+					"RecoMCTruthLink",
+					"Name of the RecoMCTruthLink input collection"  ,
+					_recoMCTruthLink,
+					std::string("RecoMCTruthLink")
 				);
 
-	registerProcessorParameter("outputFilename",
-				"name of output file",
-				m_outputFile,
-				std::string("")
+	registerProcessorParameter(	"outputFilename",
+					"name of output file",
+					m_outputFile,
+					std::string("")
 				);
 
 
@@ -80,60 +87,69 @@ m_pTTree(NULL)
 	// created by the true particles in each true jet, in the RecoMCTruthLink sense.
 	// link jet-to-reco particles, link jet-to-MC-particles.
 
-	registerInputCollection( LCIO::RECONSTRUCTEDPARTICLE,
-				"TrueJets" ,
-				"Name of the TrueJetCollection input collection",
-				_trueJetCollectionName ,
-				std::string("TrueJets") ) ;
+	registerInputCollection( 	LCIO::RECONSTRUCTEDPARTICLE,
+					"TrueJets" ,
+					"Name of the TrueJetCollection input collection",
+					_trueJetCollectionName ,
+					std::string("TrueJets")
+				);
 
-	registerInputCollection( LCIO::RECONSTRUCTEDPARTICLE,
-				"FinalColourNeutrals" ,
-				"Name of the FinalColourNeutralCollection input collection"  ,
-				_finalColourNeutralCollectionName ,
-				std::string("FinalColourNeutrals") ) ;
+	registerInputCollection( 	LCIO::RECONSTRUCTEDPARTICLE,
+					"FinalColourNeutrals" ,
+					"Name of the FinalColourNeutralCollection input collection"  ,
+					_finalColourNeutralCollectionName ,
+					std::string("FinalColourNeutrals")
+				);
 
-	registerInputCollection( LCIO::RECONSTRUCTEDPARTICLE,
-				"InitialColourNeutrals" ,
-				"Name of the InitialColourNeutralCollection input collection"  ,
-				_initialColourNeutralCollectionName ,
-				std::string("InitialColourNeutrals") ) ;
+	registerInputCollection( 	LCIO::RECONSTRUCTEDPARTICLE,
+					"InitialColourNeutrals" ,
+					"Name of the InitialColourNeutralCollection input collection"  ,
+					_initialColourNeutralCollectionName ,
+					std::string("InitialColourNeutrals")
+				);
 
 
-	registerInputCollection( LCIO::LCRELATION,
-				"TrueJetPFOLink" ,
-				"Name of the TrueJetPFOLink input collection"  ,
-				_trueJetPFOLink,
-				std::string("TrueJetPFOLink") ) ;
+	registerInputCollection( 	LCIO::LCRELATION,
+					"TrueJetPFOLink" ,
+					"Name of the TrueJetPFOLink input collection"  ,
+					_trueJetPFOLink,
+					std::string("TrueJetPFOLink")
+				);
 
-	registerInputCollection( LCIO::LCRELATION,
-				"TrueJetMCParticleLink" ,
-				"Name of the TrueJetMCParticleLink input collection"  ,
-				_trueJetMCParticleLink,
-				std::string("TrueJetMCParticleLink") ) ;
+	registerInputCollection( 	LCIO::LCRELATION,
+					"TrueJetMCParticleLink" ,
+					"Name of the TrueJetMCParticleLink input collection"  ,
+					_trueJetMCParticleLink,
+					std::string("TrueJetMCParticleLink")
+				);
 
-	registerInputCollection( LCIO::LCRELATION,
-				"FinalElementonLink rueJetMCParticleLink" ,
-				"Name of the  FinalElementonLink input collection"	,
-				_finalElementonLink,
-				std::string("FinalElementonLink") ) ;
+	registerInputCollection( 	LCIO::LCRELATION,
+					"FinalElementonLink rueJetMCParticleLink" ,
+					"Name of the  FinalElementonLink input collection"	,
+					_finalElementonLink,
+					std::string("FinalElementonLink")
+				);
 
-	registerInputCollection( LCIO::LCRELATION,
-				"InitialElementonLink" ,
-				"Name of the  InitialElementonLink input collection"  ,
-				_initialElementonLink,
-				std::string("InitialElementonLink") ) ;
+	registerInputCollection( 	LCIO::LCRELATION,
+					"InitialElementonLink" ,
+					"Name of the  InitialElementonLink input collection"  ,
+					_initialElementonLink,
+					std::string("InitialElementonLink")
+				);
 
-	registerInputCollection( LCIO::LCRELATION,
-				"FinalColourNeutralLink" ,
-				"Name of the  FinalColourNeutralLink input collection"  ,
-				_finalColourNeutralLink,
-				std::string("FinalColourNeutralLink") ) ;
+	registerInputCollection( 	LCIO::LCRELATION,
+					"FinalColourNeutralLink" ,
+					"Name of the  FinalColourNeutralLink input collection"  ,
+					_finalColourNeutralLink,
+					std::string("FinalColourNeutralLink")
+				);
 
-	registerInputCollection( LCIO::LCRELATION,
-				"InitialColourNeutralLink" ,
-				"Name of the  InitialColourNeutralLink input collection"  ,
-				_initialColourNeutralLink,
-				std::string("InitialColourNeutralLink") ) ;
+	registerInputCollection( 	LCIO::LCRELATION,
+					"InitialColourNeutralLink" ,
+					"Name of the  InitialColourNeutralLink input collection"  ,
+					_initialColourNeutralLink,
+					std::string("InitialColourNeutralLink")
+				);
 
 }
 
@@ -167,6 +183,19 @@ void JetErrorAnalysis::init()
 
 }
 
+void JetErrorAnalysis::Clear()
+{
+	m_nTrueJets = 0;
+	m_nTrueLeptons = 0;
+	m_nTrueLeptons = 0;
+	m_nRecoJets = 0;
+	m_nRecoLeptons = 0;
+	m_HDecayMode = 0;
+	m_nSLDecayBHadron = 0;
+	m_nSLDecayCHadron = 0;
+	m_nSLDecayTotal = 0;
+	m_trueJetType.clear();
+}
 
 void JetErrorAnalysis::processRunHeader()
 {
@@ -180,15 +209,21 @@ void JetErrorAnalysis::processEvent( LCEvent* pLCEvent)
 	LCCollection *trueJetCol{};
 	m_nRun = pLCEvent->getRunNumber();
 	m_nEvt = pLCEvent->getEventNumber();
+	this->Clear();
+	streamlog_out(MESSAGE) << "" << std::endl;
+	streamlog_out(MESSAGE) << "	////////////////////////////////////////////////////////////////////////////" << std::endl;
+	streamlog_out(MESSAGE) << "	////////////////////	Processing event: 	" << m_nEvt << "	////////////////////" << std::endl;
+	streamlog_out(MESSAGE) << "	////////////////////////////////////////////////////////////////////////////" << std::endl;
 
 	try
 	{
-//		recoJetCol		= pLCEvent->getCollection( _recoJetCollectionName );
+		recoJetCol		= pLCEvent->getCollection( m_recoJetCollectionName );
 		trueJetCol		= pLCEvent->getCollection( _trueJetCollectionName );
 		TrueJet_Parser* trueJet	= this;
 		trueJet->getall(pLCEvent);
 
-//		m_nRecoJets = recoJetCol->getNumberOfElements();
+		m_nRecoJets = recoJetCol->getNumberOfElements();
+		streamlog_out(DEBUG0) << "	Number of Reconstructed Jets: " << m_nRecoJets << std::endl;
 
 		int njets = trueJet->njets();
 		for (int i_jet = 0 ; i_jet < njets ; i_jet++ )
@@ -199,6 +234,7 @@ void JetErrorAnalysis::processEvent( LCEvent* pLCEvent)
 				++m_nTrueJets;
 			}
 		}
+		streamlog_out(DEBUG0) << "	Number of True Hadronic Jets(type = 1): " << m_nTrueJets << std::endl;
 		m_nEvtSum++;
 		m_nEvt++ ;
 		m_pTTree->Fill();
