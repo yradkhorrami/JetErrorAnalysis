@@ -12,9 +12,9 @@
 #include "IMPL/LCCollectionVec.h"
 #include <IMPL/ReconstructedParticleImpl.h>
 #include <IMPL/ParticleIDImpl.h>
+#include <iostream>
 #include <string>
 #include "TrueJet_Parser.h"
-#include <string>
 #include "TLorentzVector.h"
 #include <TFile.h>
 #include <TTree.h>
@@ -60,6 +60,21 @@ class JetErrorAnalysis : public Processor , public TrueJet_Parser
 		*/
 		virtual void processEvent( LCEvent * evt );
 
+		/*
+		* called for every pfo of reconstructed jet
+		*/
+		virtual void getTrackInformation( LCEvent* pLCEvent , EVENT::ReconstructedParticle *testPFO );
+
+		/*
+		*
+		*/
+		int getTrackIndex( EVENT::LCCollection *TrackCollection , EVENT::Track* inputTrk );
+
+		/*
+		*
+		*/
+		TLorentzVector getTrackFourMomentum( EVENT::Track* inputTrk , double trackMass );
+
 
 		virtual void check();
 
@@ -81,6 +96,14 @@ class JetErrorAnalysis : public Processor , public TrueJet_Parser
 		typedef	std::vector<int>		IntVector;
 		typedef	std::vector<float>		floatVector;
 
+		float					m_Bfield;
+		double					c;
+		double					mm2m;
+		double					eV2GeV;
+		double					eB;
+		float					m_pion_mass;
+		float					m_proton_mass;
+		float					m_kaon_mass;
 		int					m_nRun;
 		int					m_nEvt;
 		int					m_nRunSum;
@@ -94,16 +117,26 @@ class JetErrorAnalysis : public Processor , public TrueJet_Parser
 		int					m_nSLDecayCHadron;
 		int					m_nSLDecayTotal;
 		IntVector				m_trueJetType{};
+		IntVector				m_trueJetFlavour{};
 		floatVector				m_trueKaonEnergy{};
 		float					m_trueKaonEnergyTotal;
 		floatVector				m_trueProtonEnergy{};
 		float					m_trueProtonEnergyTotal;
+		floatVector				m_pionTrackEnergy{};
+		float					m_pionTrackEnergyTotal;
+		floatVector				m_protonTrackEnergy{};
+		float					m_protonTrackEnergyTotal;
+		floatVector				m_kaonTrackEnergy{};
+		float					m_kaonTrackEnergyTotal;
 
 	private:
 
 
 		std::string				m_recoJetCollectionName{};
 		std::string				_MCParticleColllectionName{};
+		std::string				m_MarlinTrkTracks{};
+		std::string				m_MarlinTrkTracksKAON{};
+		std::string				m_MarlinTrkTracksPROTON{};
 		std::string				_recoParticleCollectionName{};
 		std::string				_recoMCTruthLink{};
 //		std::string				_trueJetCollectionName{};
