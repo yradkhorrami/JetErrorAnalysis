@@ -35,6 +35,8 @@ m_HDecayMode(0),
 m_nSLDecayBHadron(0),
 m_nSLDecayCHadron(0),
 m_nSLDecayTotal(0),
+m_trueKaonEnergyTotal(0.0),
+m_trueProtonEnergyTotal(0.0),
 m_pTFile(NULL),
 m_pTTree(NULL)
 {
@@ -179,6 +181,10 @@ void JetErrorAnalysis::init()
 	m_pTTree->Branch("nSLDecayBHadron",&m_nSLDecayBHadron,"nSLDecayBHadron/I") ;
 	m_pTTree->Branch("nSLDecayCHadron",&m_nSLDecayCHadron,"nSLDecayCHadron/I") ;
 	m_pTTree->Branch("nSLDecayTotal",&m_nSLDecayTotal,"nSLDecayTotal/I") ;
+	m_pTTree->Branch("trueKaonEnergy",&m_trueKaonEnergy) ;
+	m_pTTree->Branch("trueKaonEnergyTotal",&m_trueKaonEnergyTotal,"trueKaonEnergyTotal/F") ;
+	m_pTTree->Branch("trueProtonEnergy",&m_trueProtonEnergy) ;
+	m_pTTree->Branch("trueProtonEnergyTotal",&m_trueProtonEnergyTotal,"trueProtonEnergyTotal/F") ;
 	m_pTTree->Branch("trueJetType",&m_trueJetType) ;
 
 }
@@ -194,6 +200,10 @@ void JetErrorAnalysis::Clear()
 	m_nSLDecayBHadron = 0;
 	m_nSLDecayCHadron = 0;
 	m_nSLDecayTotal = 0;
+	m_trueKaonEnergyTotal = 0.0;
+	m_trueKaonEnergy.clear();
+	m_trueProtonEnergyTotal = 0.0;
+	m_trueProtonEnergy.clear();
 	m_trueJetType.clear();
 }
 
@@ -259,8 +269,28 @@ void JetErrorAnalysis::processEvent( LCEvent* pLCEvent)
 						matchedRecoJetIndex = i_recoJet;
 					}
 				}
-				streamlog_out(DEBUG0) << "	True(seen) Jet [ " << trueHadronicJetIndices[ i_trueJet ] << " ] is paired with RecoJet [ " << matchedRecoJetIndex << " ]" << std::endl;
+				streamlog_out(DEBUG0) << "	True(seen) Jet [ " << trueHadronicJetIndices[ i_trueJet ] << " ] is matched with RecoJet [ " << matchedRecoJetIndex << " ]" << std::endl;
 				recoJetIndices.push_back( matchedRecoJetIndex );
+			}
+			for ( int i_jet = 0 ; i_jet < m_nTrueJets ; ++i_jet )
+			{
+				const EVENT::MCParticleVec& mcpVec =  true_partics( trueHadronicJetIndices[ i_jet ] );
+				streamlog_out(DEBUG0) << "	Number of all MCParticles in Jet [ " << trueHadronicJetIndices[ i_jet ] << " ] : " << mcpVec.size() << std::endl;
+				for ( unsigned int i_mcp = 0 ; i_mcp < mcpVec.size() ; ++i_mcp )
+				{
+					EVENT::MCParticle *testMCP = mcpVec.at( i_mcp );
+					streamlog_out(DEBUG0) << "	MCParticle [ " << i_mcp << " ] : 	GeneratorStatus = " << testMCP->getGeneratorStatus() << " ; 	PDGCode = " << testMCP->getPDG() << std::endl;
+					if ( testMCP->getGeneratorStatus() == 1 && abs( testMCP->getPDG() ) == 321 )
+					{
+						m_trueKaonEnergy.push_back( testMCP->getEnergy() );
+						m_trueKaonEnergyTotal += testMCP->getEnergy();
+					}
+					else if ( testMCP->getGeneratorStatus() == 1 && abs( testMCP->getPDG() ) == 2212 )
+					{
+						m_trueProtonEnergy.push_back( testMCP->getEnergy() );
+						m_trueProtonEnergyTotal += testMCP->getEnergy();
+					}
+				}
 			}
 
 		}

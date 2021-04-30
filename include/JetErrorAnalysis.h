@@ -94,6 +94,10 @@ class JetErrorAnalysis : public Processor , public TrueJet_Parser
 		int					m_nSLDecayCHadron;
 		int					m_nSLDecayTotal;
 		IntVector				m_trueJetType{};
+		floatVector				m_trueKaonEnergy{};
+		float					m_trueKaonEnergyTotal;
+		floatVector				m_trueProtonEnergy{};
+		float					m_trueProtonEnergyTotal;
 
 	private:
 
