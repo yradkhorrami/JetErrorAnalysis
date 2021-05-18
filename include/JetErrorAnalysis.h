@@ -63,7 +63,12 @@ class JetErrorAnalysis : public Processor , public TrueJet_Parser
 		/*
 		* called for every pfo of reconstructed jet
 		*/
-		virtual void getTrackInformation( LCEvent* pLCEvent , EVENT::ReconstructedParticle *testPFO );
+		virtual void getTrackInformation( LCEvent* pLCEvent , EVENT::ReconstructedParticle *testPFO , double &KaonTrackEnergyinJet , double &ProtonTrackEnergyinJet );
+
+		/*
+		* called for every pair of true and reconstructed jets
+		*/
+		virtual void getJetResiduals( TLorentzVector trueJetFourMomentum , EVENT::ReconstructedParticle *recoJet );
 
 		/*
 		*
@@ -74,6 +79,10 @@ class JetErrorAnalysis : public Processor , public TrueJet_Parser
 		*
 		*/
 		TLorentzVector getTrackFourMomentum( EVENT::Track* inputTrk , double trackMass );
+
+
+		virtual void InitializeHistogram( TH1F *histogram , int scale , int color , int lineWidth , int markerSize , int markerStyle );
+		virtual void doProperGaussianFit( TH1F *histogram , float fitMin , float fitMax , float fitRange );
 
 
 		virtual void check();
@@ -125,13 +134,33 @@ class JetErrorAnalysis : public Processor , public TrueJet_Parser
 		floatVector				m_pionTrackEnergy{};
 		float					m_pionTrackEnergyTotal;
 		floatVector				m_protonTrackEnergy{};
+		floatVector				m_ProtonTrackEnergyinJet{};
 		float					m_protonTrackEnergyTotal;
 		floatVector				m_kaonTrackEnergy{};
+		floatVector				m_KaonTrackEnergyinJet{};
 		float					m_kaonTrackEnergyTotal;
+		floatVector				m_NormalizedResidualPx{};
+		floatVector				m_NormalizedResidualPy{};
+		floatVector				m_NormalizedResidualPz{};
+		floatVector				m_NormalizedResidualE{};
+		floatVector				m_NormalizedResidualTheta{};
+		floatVector				m_NormalizedResidualPhi{};
+		int					n_NormalizedResidualPx;
+		int					n_NormalizedResidualPy;
+		int					n_NormalizedResidualPz;
+		int					n_NormalizedResidualE;
+		int					n_NormalizedResidualTheta;
+		int					n_NormalizedResidualPhi;
+		TH1F					*h_NormalizedResidualPx{};
+		TH1F					*h_NormalizedResidualPy{};
+		TH1F					*h_NormalizedResidualPz{};
+		TH1F					*h_NormalizedResidualE{};
+		TH1F					*h_NormalizedResidualTheta{};
+		TH1F					*h_NormalizedResidualPhi{};
 
 	private:
 
-
+		std::string				m_referenceJetCollection{};
 		std::string				m_recoJetCollectionName{};
 		std::string				_MCParticleColllectionName{};
 		std::string				m_MarlinTrkTracks{};
@@ -141,6 +170,10 @@ class JetErrorAnalysis : public Processor , public TrueJet_Parser
 		std::string				_recoMCTruthLink{};
 //		std::string				_trueJetCollectionName{};
 		std::string				m_outputFile{};
+		std::string				m_histName{};
+		int					m_histColour{};
+		float					m_minKaonTrackEnergy{};
+		float					m_minProtonTrackEnergy{};
 		TFile					*m_pTFile;
 	        TTree					*m_pTTree;
 
