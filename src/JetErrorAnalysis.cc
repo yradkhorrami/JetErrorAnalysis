@@ -52,6 +52,12 @@ m_trueProtonEnergyTotal(0.0),
 m_pionTrackEnergyTotal(0.0),
 m_protonTrackEnergyTotal(0.0),
 m_kaonTrackEnergyTotal(0.0),
+n_ResidualPx(0.0),
+n_ResidualPy(0.0),
+n_ResidualPz(0.0),
+n_ResidualE(0.0),
+n_ResidualTheta(0.0),
+n_ResidualPhi(0.0),
 n_NormalizedResidualPx(0.0),
 n_NormalizedResidualPy(0.0),
 n_NormalizedResidualPz(0.0),
@@ -276,6 +282,12 @@ void JetErrorAnalysis::init()
 	m_pTTree->Branch("kaonTrackEnergy",&m_kaonTrackEnergy) ;
 	m_pTTree->Branch("kaonTrackEnergyinJet",&m_KaonTrackEnergyinJet) ;
 	m_pTTree->Branch("kaonTrackEnergyTotal",&m_kaonTrackEnergyTotal,"kaonTrackEnergyTotal/F") ;
+	m_pTTree->Branch("ResidualPx",&m_ResidualPx) ;
+	m_pTTree->Branch("ResidualPy",&m_ResidualPy) ;
+	m_pTTree->Branch("ResidualPz",&m_ResidualPz) ;
+	m_pTTree->Branch("ResidualE",&m_ResidualE) ;
+	m_pTTree->Branch("ResidualTheta",&m_ResidualTheta) ;
+	m_pTTree->Branch("ResidualPhi",&m_ResidualPhi) ;
 	m_pTTree->Branch("NormalizedResidualPx",&m_NormalizedResidualPx) ;
 	m_pTTree->Branch("NormalizedResidualPy",&m_NormalizedResidualPy) ;
 	m_pTTree->Branch("NormalizedResidualPz",&m_NormalizedResidualPz) ;
@@ -284,6 +296,12 @@ void JetErrorAnalysis::init()
 	m_pTTree->Branch("NormalizedResidualPhi",&m_NormalizedResidualPhi) ;
 	m_pTTree->Branch("trueJetType",&m_trueJetType) ;
 	m_pTTree->Branch("trueJetFlavour",&m_trueJetFlavour) ;
+	h_ResidualPx = new TH1F( m_histName.c_str() , "; _{}p_{x,jet}^{REC} - p_{x,jet}^{MC} [GeV]; Normalized Entries / 0.1" , 2000 , -10.0 , 10.0 ); n_ResidualPx = 0;
+	h_ResidualPy = new TH1F( m_histName.c_str() , "; _{}p_{y,jet}^{REC} - p_{y,jet}^{MC} [GeV]; Normalized Entries / 0.1" , 2000 , -10.0 , 10.0 ); n_ResidualPy = 0;
+	h_ResidualPz = new TH1F( m_histName.c_str() , "; _{}p_{z,jet}^{REC} - p_{z,jet}^{MC} [GeV]; Normalized Entries / 0.1" , 2000 , -10.0 , 10.0 ); n_ResidualPz = 0;
+	h_ResidualE = new TH1F( m_histName.c_str() , "; _{}E_{jet}^{REC} - E_{jet}^{MC} [GeV]; Normalized Entries / 0.1" , 2000 , -10.0 , 10.0 ); n_ResidualE = 0;
+	h_ResidualTheta = new TH1F( m_histName.c_str() , "; _{}#theta_{jet}^{REC} - #theta_{jet}^{MC} [rad]; Normalized Entries / 0.1" , 200 * 3.14159265 , -3.14159265 , 3.14159265 ); n_ResidualTheta = 0;
+	h_ResidualPhi = new TH1F( m_histName.c_str() , "; _{}#phi_{jet}^{REC} - #phi_{jet}^{MC} [rad]; Normalized Entries / 0.1" , 200 * 3.14159265 , -3.14159265 , 3.14159265 ); n_ResidualPhi = 0;
 	h_NormalizedResidualPx = new TH1F( m_histName.c_str() , "; (_{}p_{x,jet}^{REC} - p_{x,jet}^{MC}) / #sigma_{p_{x,jet}}; Normalized Entries / 0.1" , 200 , -10.0 , 10.0 ); n_NormalizedResidualPx = 0;
 	h_NormalizedResidualPy = new TH1F( m_histName.c_str() , "; (_{}p_{y,jet}^{REC} - p_{y,jet}^{MC}) / #sigma_{p_{y,jet}}; Normalized Entries / 0.1" , 200 , -10.0 , 10.0 ); n_NormalizedResidualPy = 0;
 	h_NormalizedResidualPz = new TH1F( m_histName.c_str() , "; (_{}p_{z,jet}^{REC} - p_{z,jet}^{MC}) / #sigma_{p_{z,jet}}; Normalized Entries / 0.1" , 200 , -10.0 , 10.0 ); n_NormalizedResidualPz = 0;
@@ -316,6 +334,12 @@ void JetErrorAnalysis::Clear()
 	m_kaonTrackEnergy.clear();
 	m_KaonTrackEnergyinJet.clear();
 	m_kaonTrackEnergyTotal = 0.0;
+	m_ResidualPx.clear();
+	m_ResidualPy.clear();
+	m_ResidualPz.clear();
+	m_ResidualE.clear();
+	m_ResidualTheta.clear();
+	m_ResidualPhi.clear();
 	m_NormalizedResidualPx.clear();
 	m_NormalizedResidualPy.clear();
 	m_NormalizedResidualPz.clear();
@@ -499,6 +523,14 @@ void JetErrorAnalysis::getJetResiduals( TLorentzVector trueJetFourMomentum , EVE
 	double dPhi_dPy = -recoJetPx / recoJetPt2;
 	double sigmaTheta = std::sqrt( std::fabs( sigmaPx2 * std::pow( dTheta_dPx , 2 ) + sigmaPy2 * std::pow( dTheta_dPy , 2 ) + sigmaPz2 * std::pow( dTheta_dPz , 2 ) + 2 * ( sigmaPxPy * dTheta_dPx * dTheta_dPy ) + 2 * ( sigmaPxPz * dTheta_dPx * dTheta_dPz ) + 2 * ( sigmaPyPz * dTheta_dPy * dTheta_dPz ) ) );
 	double sigmaPhi = std::sqrt( std::fabs( sigmaPx2 * std::pow( dPhi_dPx , 2 ) + sigmaPy2 * std::pow( dPhi_dPy , 2 ) + 2 * ( sigmaPxPy * dPhi_dPx * dPhi_dPy ) ) );
+	m_ResidualPx.push_back( recoJetPx - trueJetPx );
+	h_ResidualPx->Fill( recoJetPx - trueJetPx ); ++n_ResidualPx;
+	m_ResidualPy.push_back( recoJetPy - trueJetPy );
+	h_ResidualPy->Fill( recoJetPy - trueJetPy ); ++n_ResidualPy;
+	m_ResidualPz.push_back( recoJetPz - trueJetPz );
+	h_ResidualPz->Fill( recoJetPz - trueJetPz ); ++n_ResidualPz;
+	m_ResidualE.push_back( recoJetE - trueJetE );
+	h_ResidualE->Fill( recoJetE - trueJetE ); ++n_ResidualE;
 	m_NormalizedResidualPx.push_back( ( recoJetPx - trueJetPx ) / std::sqrt( sigmaPx2 ) );
 	h_NormalizedResidualPx->Fill( ( recoJetPx - trueJetPx ) / std::sqrt( sigmaPx2 ) ); ++n_NormalizedResidualPx;
 	m_NormalizedResidualPy.push_back( ( recoJetPy - trueJetPy ) / std::sqrt( sigmaPy2 ) );
@@ -508,9 +540,13 @@ void JetErrorAnalysis::getJetResiduals( TLorentzVector trueJetFourMomentum , EVE
 	m_NormalizedResidualE.push_back( ( recoJetE - trueJetE ) / std::sqrt( sigmaE2 ) );
 	h_NormalizedResidualE->Fill( ( recoJetE - trueJetE ) / std::sqrt( sigmaE2 ) ); ++n_NormalizedResidualE;
 	double ThetaResidual = ( ( recoJetTheta - trueJetTheta ) > 0 ? acos( truePunit.Dot(recoProtated) ) : -1 * acos( truePunit.Dot(recoProtated) ) );
+	m_ResidualTheta.push_back( ThetaResidual );
+	h_ResidualTheta->Fill( ThetaResidual ); ++n_ResidualTheta;
 	m_NormalizedResidualTheta.push_back( ThetaResidual / sigmaTheta );
 	h_NormalizedResidualTheta->Fill( ThetaResidual / sigmaTheta ); ++n_NormalizedResidualTheta;
 	double PhiResidual = ( ( recoJetPhi - trueJetPhi ) > 0 ? acos( truePtunit.Dot(recoPtunit) ) : -1 * acos( truePtunit.Dot(recoPtunit) ) );
+	m_ResidualPhi.push_back( PhiResidual );
+	h_ResidualPhi->Fill( PhiResidual ); ++n_ResidualPhi;
 	m_NormalizedResidualPhi.push_back( PhiResidual / sigmaPhi );
 	h_NormalizedResidualPhi->Fill( PhiResidual / sigmaPhi ); ++n_NormalizedResidualPhi;
 }
@@ -693,6 +729,12 @@ void JetErrorAnalysis::end()
 {
 	m_pTFile->cd();
 	m_pTTree->Write();
+	InitializeHistogram( h_ResidualPx , n_ResidualPx , m_histColour , 1 , 1.0 , 1 );
+	InitializeHistogram( h_ResidualPy , n_ResidualPy , m_histColour , 1 , 1.0 , 1 );
+	InitializeHistogram( h_ResidualPz , n_ResidualPz , m_histColour , 1 , 1.0 , 1 );
+	InitializeHistogram( h_ResidualE , n_ResidualE , m_histColour , 1 , 1.0 , 1 );
+	InitializeHistogram( h_ResidualTheta , n_ResidualTheta , m_histColour , 1 , 1.0 , 1 );
+	InitializeHistogram( h_ResidualPhi , n_ResidualPhi , m_histColour , 1 , 1.0 , 1 );
 	InitializeHistogram( h_NormalizedResidualPx , n_NormalizedResidualPx , m_histColour , 1 , 1.0 , 1 );
 	InitializeHistogram( h_NormalizedResidualPy , n_NormalizedResidualPy , m_histColour , 1 , 1.0 , 1 );
 	InitializeHistogram( h_NormalizedResidualPz , n_NormalizedResidualPz , m_histColour , 1 , 1.0 , 1 );
