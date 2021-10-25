@@ -296,18 +296,18 @@ void JetErrorAnalysis::init()
 	m_pTTree->Branch("NormalizedResidualPhi",&m_NormalizedResidualPhi) ;
 	m_pTTree->Branch("trueJetType",&m_trueJetType) ;
 	m_pTTree->Branch("trueJetFlavour",&m_trueJetFlavour) ;
-	h_ResidualPx = new TH1F( m_histName.c_str() , "; _{}p_{x,jet}^{REC} - p_{x,jet}^{MC} [GeV]; Normalized Entries / 0.1" , 2000 , -10.0 , 10.0 ); n_ResidualPx = 0;
-	h_ResidualPy = new TH1F( m_histName.c_str() , "; _{}p_{y,jet}^{REC} - p_{y,jet}^{MC} [GeV]; Normalized Entries / 0.1" , 2000 , -10.0 , 10.0 ); n_ResidualPy = 0;
-	h_ResidualPz = new TH1F( m_histName.c_str() , "; _{}p_{z,jet}^{REC} - p_{z,jet}^{MC} [GeV]; Normalized Entries / 0.1" , 2000 , -10.0 , 10.0 ); n_ResidualPz = 0;
-	h_ResidualE = new TH1F( m_histName.c_str() , "; _{}E_{jet}^{REC} - E_{jet}^{MC} [GeV]; Normalized Entries / 0.1" , 2000 , -10.0 , 10.0 ); n_ResidualE = 0;
-	h_ResidualTheta = new TH1F( m_histName.c_str() , "; _{}#theta_{jet}^{REC} - #theta_{jet}^{MC} [rad]; Normalized Entries / 0.1" , 200 * 3.14159265 , -3.14159265 , 3.14159265 ); n_ResidualTheta = 0;
-	h_ResidualPhi = new TH1F( m_histName.c_str() , "; _{}#phi_{jet}^{REC} - #phi_{jet}^{MC} [rad]; Normalized Entries / 0.1" , 200 * 3.14159265 , -3.14159265 , 3.14159265 ); n_ResidualPhi = 0;
-	h_NormalizedResidualPx = new TH1F( m_histName.c_str() , "; (_{}p_{x,jet}^{REC} - p_{x,jet}^{MC}) / #sigma_{p_{x,jet}}; Normalized Entries / 0.1" , 200 , -10.0 , 10.0 ); n_NormalizedResidualPx = 0;
-	h_NormalizedResidualPy = new TH1F( m_histName.c_str() , "; (_{}p_{y,jet}^{REC} - p_{y,jet}^{MC}) / #sigma_{p_{y,jet}}; Normalized Entries / 0.1" , 200 , -10.0 , 10.0 ); n_NormalizedResidualPy = 0;
-	h_NormalizedResidualPz = new TH1F( m_histName.c_str() , "; (_{}p_{z,jet}^{REC} - p_{z,jet}^{MC}) / #sigma_{p_{z,jet}}; Normalized Entries / 0.1" , 200 , -10.0 , 10.0 ); n_NormalizedResidualPz = 0;
-	h_NormalizedResidualE = new TH1F( m_histName.c_str() , "; (_{}E_{jet}^{REC} - E_{jet}^{MC}) / #sigma_{E_{jet}}; Normalized Entries / 0.1" , 200 , -10.0 , 10.0 ); n_NormalizedResidualE = 0;
-	h_NormalizedResidualTheta = new TH1F( m_histName.c_str() , "; (_{}#theta_{jet}^{REC} - #theta_{jet}^{MC}) / #sigma_{#theta_{jet}}; Normalized Entries / 0.1" , 200 , -10.0 , 10.0 ); n_NormalizedResidualTheta = 0;
-	h_NormalizedResidualPhi = new TH1F( m_histName.c_str() , "; (_{}#phi_{jet}^{REC} - #phi_{jet}^{MC}) / #sigma_{#phi_{jet}}; Normalized Entries / 0.1" , 200 , -10.0 , 10.0 ); n_NormalizedResidualPhi = 0;
+	h_ResidualPx = new TH1F( m_histName.c_str() , ( m_histName + "; _{}p_{x,jet}^{REC} - p_{x,jet}^{MC} [GeV]; Normalized Entries / 0.1" ).c_str() , 200 , -10.0 , 10.0 ); n_ResidualPx = 0;
+	h_ResidualPy = new TH1F( m_histName.c_str() , ( m_histName + "; _{}p_{y,jet}^{REC} - p_{y,jet}^{MC} [GeV]; Normalized Entries / 0.1" ).c_str() , 200 , -10.0 , 10.0 ); n_ResidualPy = 0;
+	h_ResidualPz = new TH1F( m_histName.c_str() , ( m_histName + "; _{}p_{z,jet}^{REC} - p_{z,jet}^{MC} [GeV]; Normalized Entries / 0.1" ).c_str() , 200 , -10.0 , 10.0 ); n_ResidualPz = 0;
+	h_ResidualE = new TH1F( m_histName.c_str() , ( m_histName + "; _{}E_{jet}^{REC} - E_{jet}^{MC} [GeV]; Normalized Entries / 0.1" ).c_str() , 200 , -10.0 , 10.0 ); n_ResidualE = 0;
+	h_ResidualTheta = new TH1F( m_histName.c_str() , ( m_histName + "; _{}#theta_{jet}^{REC} - #theta_{jet}^{MC} [rad]; Normalized Entries / 0.1" ).c_str() , 20 * 3.14159265 , -3.14159265 , 3.14159265 ); n_ResidualTheta = 0;
+	h_ResidualPhi = new TH1F( m_histName.c_str() , ( m_histName + "; _{}#phi_{jet}^{REC} - #phi_{jet}^{MC} [rad]; Normalized Entries / 0.1" ).c_str() , 20 * 3.14159265 , -3.14159265 , 3.14159265 ); n_ResidualPhi = 0;
+	h_NormalizedResidualPx = new TH1F( m_histName.c_str() , ( m_histName + "; (_{}p_{x,jet}^{REC} - p_{x,jet}^{MC}) / #sigma_{p_{x,jet}}; Normalized Entries / 0.1" ).c_str() , 200 , -10.0 , 10.0 ); n_NormalizedResidualPx = 0;
+	h_NormalizedResidualPy = new TH1F( m_histName.c_str() , ( m_histName + "; (_{}p_{y,jet}^{REC} - p_{y,jet}^{MC}) / #sigma_{p_{y,jet}}; Normalized Entries / 0.1" ).c_str() , 200 , -10.0 , 10.0 ); n_NormalizedResidualPy = 0;
+	h_NormalizedResidualPz = new TH1F( m_histName.c_str() , ( m_histName + "; (_{}p_{z,jet}^{REC} - p_{z,jet}^{MC}) / #sigma_{p_{z,jet}}; Normalized Entries / 0.1" ).c_str() , 200 , -10.0 , 10.0 ); n_NormalizedResidualPz = 0;
+	h_NormalizedResidualE = new TH1F( m_histName.c_str() , ( m_histName + "; (_{}E_{jet}^{REC} - E_{jet}^{MC}) / #sigma_{E_{jet}}; Normalized Entries / 0.1" ).c_str() , 200 , -10.0 , 10.0 ); n_NormalizedResidualE = 0;
+	h_NormalizedResidualTheta = new TH1F( m_histName.c_str() , ( m_histName + "; (_{}#theta_{jet}^{REC} - #theta_{jet}^{MC}) / #sigma_{#theta_{jet}}; Normalized Entries / 0.1" ).c_str() , 200 , -10.0 , 10.0 ); n_NormalizedResidualTheta = 0;
+	h_NormalizedResidualPhi = new TH1F( m_histName.c_str() , ( m_histName + "; (_{}#phi_{jet}^{REC} - #phi_{jet}^{MC}) / #sigma_{#phi_{jet}}; Normalized Entries / 0.1" ).c_str() , 200 , -10.0 , 10.0 ); n_NormalizedResidualPhi = 0;
 
 }
 
