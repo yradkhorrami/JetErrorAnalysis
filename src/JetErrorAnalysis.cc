@@ -520,7 +520,7 @@ void JetErrorAnalysis::getJetResiduals( TLorentzVector trueJetFourMomentum , EVE
 	double dTheta_dPy = recoJetPy * recoJetPz / ( recoJetP2 * recoJetPt );
 	double dTheta_dPz = -recoJetPt / recoJetP2;
 	double dPhi_dPx = -recoJetPy / recoJetPt2;
-	double dPhi_dPy = -recoJetPx / recoJetPt2;
+	double dPhi_dPy = recoJetPx / recoJetPt2;
 	double sigmaTheta = std::sqrt( std::fabs( sigmaPx2 * std::pow( dTheta_dPx , 2 ) + sigmaPy2 * std::pow( dTheta_dPy , 2 ) + sigmaPz2 * std::pow( dTheta_dPz , 2 ) + 2 * ( sigmaPxPy * dTheta_dPx * dTheta_dPy ) + 2 * ( sigmaPxPz * dTheta_dPx * dTheta_dPz ) + 2 * ( sigmaPyPz * dTheta_dPy * dTheta_dPz ) ) );
 	double sigmaPhi = std::sqrt( std::fabs( sigmaPx2 * std::pow( dPhi_dPx , 2 ) + sigmaPy2 * std::pow( dPhi_dPy , 2 ) + 2 * ( sigmaPxPy * dPhi_dPx * dPhi_dPy ) ) );
 	m_ResidualPx.push_back( recoJetPx - trueJetPx );
