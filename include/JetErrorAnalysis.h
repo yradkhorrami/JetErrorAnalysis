@@ -12,10 +12,14 @@
 #include "IMPL/LCCollectionVec.h"
 #include <IMPL/ReconstructedParticleImpl.h>
 #include <IMPL/ParticleIDImpl.h>
+#include "DDMarlinCED.h"
 #include <iostream>
 #include <string>
 #include "TrueJet_Parser.h"
 #include "TLorentzVector.h"
+#include "TPaveStats.h"
+#include "TPad.h"
+#include "TStyle.h"
 #include <TFile.h>
 #include <TTree.h>
 class TFile;
@@ -61,27 +65,17 @@ class JetErrorAnalysis : public Processor , public TrueJet_Parser
 		virtual void processEvent( LCEvent * evt );
 
 		/*
-		* called for every pfo of reconstructed jet
-		*/
-		virtual void getTrackInformation( LCEvent* pLCEvent , EVENT::ReconstructedParticle *testPFO , double &KaonTrackEnergyinJet , double &ProtonTrackEnergyinJet );
-
-		/*
 		* called for every pair of true and reconstructed jets
 		*/
-		virtual void getJetResiduals( TLorentzVector trueJetFourMomentum , EVENT::ReconstructedParticle *recoJet );
+		virtual void	getJetResiduals( TVector3 jetTrueMomentum , double jetTrueEnergy , TVector3 jetRecoMomentum , double jetRecoEnergy , double &jetPxResidual , double &jetPyResidual , double &jetPzResidual , double &jetEnergyResidual , double &jetThetaResidual , double &jetPhiResidual );
 
 		/*
-		*
+		* called for every reconstructed jet
 		*/
-		int getTrackIndex( EVENT::LCCollection *TrackCollection , EVENT::Track* inputTrk );
-
-		/*
-		*
-		*/
-		TLorentzVector getTrackFourMomentum( EVENT::Track* inputTrk , double trackMass );
+		virtual void	getJetResolutions( TLorentzVector jetFourMomentum , std::vector<float> jetCovMat , double &sigmaE , double &sigmaTheta , double &sigmaPhi );
 
 
-		virtual void InitializeHistogram( TH1F *histogram , int scale , int color , int lineWidth , int markerSize , int markerStyle );
+		virtual void InitializeHistogram( TH1F *histogram , int scale , int color , int lineWidth , int markerSize , int markerStyle , bool fitGaussian );
 		virtual void doProperGaussianFit( TH1F *histogram , float fitMin , float fitMax , float fitRange );
 
 
@@ -105,64 +99,81 @@ class JetErrorAnalysis : public Processor , public TrueJet_Parser
 		typedef	std::vector<int>		IntVector;
 		typedef	std::vector<float>		floatVector;
 
-		float					m_Bfield;
-		double					c;
-		double					mm2m;
-		double					eV2GeV;
-		double					eB;
-		float					m_pion_mass;
-		float					m_proton_mass;
-		float					m_kaon_mass;
 		int					m_nRun;
 		int					m_nEvt;
 		int					m_nRunSum;
 		int					m_nEvtSum;
 		int					m_nTrueJets;
-		int					m_nTrueLeptons;
 		int					m_nRecoJets;
-		int					m_nRecoLeptons;
-		int					m_HDecayMode;
-		int					m_nSLDecayBHadron;
-		int					m_nSLDecayCHadron;
-		int					m_nSLDecayTotal;
-		IntVector				m_trueJetType{};
-		IntVector				m_trueJetFlavour{};
-		floatVector				m_trueKaonEnergy{};
-		float					m_trueKaonEnergyTotal;
-		floatVector				m_trueProtonEnergy{};
-		float					m_trueProtonEnergyTotal;
-		floatVector				m_pionTrackEnergy{};
-		float					m_pionTrackEnergyTotal;
-		floatVector				m_protonTrackEnergy{};
-		floatVector				m_ProtonTrackEnergyinJet{};
-		float					m_protonTrackEnergyTotal;
-		floatVector				m_kaonTrackEnergy{};
-		floatVector				m_KaonTrackEnergyinJet{};
-		float					m_kaonTrackEnergyTotal;
+		floatVector				m_quarkPx{};
+		floatVector				m_quarkPy{};
+		floatVector				m_quarkPz{};
+		floatVector				m_quarkE{};
+		floatVector				m_quarkTheta{};
+		floatVector				m_quarkPhi{};
+		floatVector				m_trueJetPx{};
+		floatVector				m_trueJetPy{};
+		floatVector				m_trueJetPz{};
+		floatVector				m_trueJetE{};
+		floatVector				m_trueJetTheta{};
+		floatVector				m_trueJetPhi{};
+		floatVector				m_trueSeenJetPx{};
+		floatVector				m_trueSeenJetPy{};
+		floatVector				m_trueSeenJetPz{};
+		floatVector				m_trueSeenJetE{};
+		floatVector				m_trueSeenJetTheta{};
+		floatVector				m_trueSeenJetPhi{};
+		floatVector				m_seenJetPx{};
+		floatVector				m_seenJetPy{};
+		floatVector				m_seenJetPz{};
+		floatVector				m_seenJetE{};
+		floatVector				m_seenJetTheta{};
+		floatVector				m_seenJetPhi{};
+		floatVector				m_recoJetPx{};
+		floatVector				m_recoJetPy{};
+		floatVector				m_recoJetPz{};
+		floatVector				m_recoJetE{};
+		floatVector				m_recoJetTheta{};
+		floatVector				m_recoJetPhi{};
+		floatVector				m_jetSigmaPx2{};
+		floatVector				m_jetSigmaPxPy{};
+		floatVector				m_jetSigmaPy2{};
+		floatVector				m_jetSigmaPxPz{};
+		floatVector				m_jetSigmaPyPz{};
+		floatVector				m_jetSigmaPz2{};
+		floatVector				m_jetSigmaPxE{};
+		floatVector				m_jetSigmaPyE{};
+		floatVector				m_jetSigmaPzE{};
+		floatVector				m_jetSigmaE2{};
+		floatVector				m_jetSigmaTheta2{};
+		floatVector				m_jetSigmaPhi2{};
 		floatVector				m_ResidualPx{};
 		floatVector				m_ResidualPy{};
 		floatVector				m_ResidualPz{};
 		floatVector				m_ResidualE{};
 		floatVector				m_ResidualTheta{};
 		floatVector				m_ResidualPhi{};
-		int					n_ResidualPx;
-		int					n_ResidualPy;
-		int					n_ResidualPz;
-		int					n_ResidualE;
-		int					n_ResidualTheta;
-		int					n_ResidualPhi;
 		floatVector				m_NormalizedResidualPx{};
 		floatVector				m_NormalizedResidualPy{};
 		floatVector				m_NormalizedResidualPz{};
 		floatVector				m_NormalizedResidualE{};
 		floatVector				m_NormalizedResidualTheta{};
 		floatVector				m_NormalizedResidualPhi{};
-		int					n_NormalizedResidualPx;
-		int					n_NormalizedResidualPy;
-		int					n_NormalizedResidualPz;
-		int					n_NormalizedResidualE;
-		int					n_NormalizedResidualTheta;
-		int					n_NormalizedResidualPhi;
+		floatVector				m_ResidualPxSeen{};
+		floatVector				m_ResidualPySeen{};
+		floatVector				m_ResidualPzSeen{};
+		floatVector				m_ResidualESeen{};
+		floatVector				m_ResidualThetaSeen{};
+		floatVector				m_ResidualPhiSeen{};
+		floatVector				m_NormalizedResidualPxSeen{};
+		floatVector				m_NormalizedResidualPySeen{};
+		floatVector				m_NormalizedResidualPzSeen{};
+		floatVector				m_NormalizedResidualESeen{};
+		floatVector				m_NormalizedResidualThetaSeen{};
+		floatVector				m_NormalizedResidualPhiSeen{};
+		IntVector				m_trueJetType{};
+		IntVector				m_trueJetFlavour{};
+		IntVector				m_recoJetFlavour{};
 		TH1F					*h_ResidualPx{};
 		TH1F					*h_ResidualPy{};
 		TH1F					*h_ResidualPz{};
@@ -175,15 +186,23 @@ class JetErrorAnalysis : public Processor , public TrueJet_Parser
 		TH1F					*h_NormalizedResidualE{};
 		TH1F					*h_NormalizedResidualTheta{};
 		TH1F					*h_NormalizedResidualPhi{};
+		TH1F					*h_ResidualPxSeen{};
+		TH1F					*h_ResidualPySeen{};
+		TH1F					*h_ResidualPzSeen{};
+		TH1F					*h_ResidualESeen{};
+		TH1F					*h_ResidualThetaSeen{};
+		TH1F					*h_ResidualPhiSeen{};
+		TH1F					*h_NormalizedResidualPxSeen{};
+		TH1F					*h_NormalizedResidualPySeen{};
+		TH1F					*h_NormalizedResidualPzSeen{};
+		TH1F					*h_NormalizedResidualESeen{};
+		TH1F					*h_NormalizedResidualThetaSeen{};
+		TH1F					*h_NormalizedResidualPhiSeen{};
 
 	private:
 
-		std::string				m_referenceJetCollection{};
 		std::string				m_recoJetCollectionName{};
 		std::string				_MCParticleColllectionName{};
-		std::string				m_MarlinTrkTracks{};
-		std::string				m_MarlinTrkTracksKAON{};
-		std::string				m_MarlinTrkTracksPROTON{};
 		std::string				_recoParticleCollectionName{};
 		std::string				_recoMCTruthLink{};
 //		std::string				_trueJetCollectionName{};

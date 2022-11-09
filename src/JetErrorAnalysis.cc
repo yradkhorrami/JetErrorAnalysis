@@ -6,6 +6,7 @@
 #include "TH1F.h"
 #include "TH2F.h"
 #include "TF1.h"
+#include "TPad.h"
 #include "TPaveStats.h"
 
 
@@ -27,43 +28,12 @@ using namespace std ;
 JetErrorAnalysis aJetErrorAnalysis ;
 
 JetErrorAnalysis::JetErrorAnalysis() : Processor("JetErrorAnalysis"),
-m_Bfield(0.f),
-c(0.),
-mm2m(0.),
-eV2GeV(0.),
-eB(0.),
-m_pion_mass(0.0),
-m_proton_mass(0.0),
-m_kaon_mass(0.0),
 m_nRun(0),
 m_nEvt(0),
 m_nRunSum(0),
 m_nEvtSum(0),
 m_nTrueJets(0),
-m_nTrueLeptons(0),
 m_nRecoJets(0),
-m_nRecoLeptons(0),
-m_HDecayMode(0),
-m_nSLDecayBHadron(0),
-m_nSLDecayCHadron(0),
-m_nSLDecayTotal(0),
-m_trueKaonEnergyTotal(0.0),
-m_trueProtonEnergyTotal(0.0),
-m_pionTrackEnergyTotal(0.0),
-m_protonTrackEnergyTotal(0.0),
-m_kaonTrackEnergyTotal(0.0),
-n_ResidualPx(0.0),
-n_ResidualPy(0.0),
-n_ResidualPz(0.0),
-n_ResidualE(0.0),
-n_ResidualTheta(0.0),
-n_ResidualPhi(0.0),
-n_NormalizedResidualPx(0.0),
-n_NormalizedResidualPy(0.0),
-n_NormalizedResidualPz(0.0),
-n_NormalizedResidualE(0.0),
-n_NormalizedResidualTheta(0.0),
-n_NormalizedResidualPhi(0.0),
 m_pTFile(NULL),
 m_pTTree(NULL)
 {
@@ -78,18 +48,33 @@ m_pTTree(NULL)
 	// Inputs: MC-particles, Reco-particles, the link between the two
 
 	registerInputCollection( 	LCIO::RECONSTRUCTEDPARTICLE,
-					"referenceJetCollection" ,
-					"Name of the Reference Jet collection"  ,
-					m_referenceJetCollection ,
-					std::string("Durham_nJets")
-				);
-
-	registerInputCollection( 	LCIO::RECONSTRUCTEDPARTICLE,
 					"RecoJetCollection" ,
 					"Name of the input Reconstructed Jet collection"  ,
 					m_recoJetCollectionName ,
 					std::string("Durham_nJets")
 				);
+
+	registerProcessorParameter(	"outputFilename",
+					"name of output file",
+					m_outputFile,
+					std::string("")
+				);
+
+	registerProcessorParameter(	"HistogramsName",
+					"name of histograms",
+					m_histName,
+					std::string("Std. Reco")
+				);
+
+	registerProcessorParameter(	"HistogramsColour",
+					"color of histograms",
+					m_histColour,
+					int(1)
+				);
+
+	// Inputs: True jets (as a recoparticle, will be the sum of the _reconstructed particles_
+	// created by the true particles in each true jet, in the RecoMCTruthLink sense.
+	// link jet-to-reco particles, link jet-to-MC-particles.
 
 	registerInputCollection( 	LCIO::MCPARTICLE,
 					"MCParticleCollection" ,
@@ -112,62 +97,6 @@ m_pTTree(NULL)
 					std::string("RecoMCTruthLink")
 				);
 
-	registerInputCollection(	LCIO::TRACK,
-					"MarlinTrkTracksCollection" ,
-					"Name of the MarlinTrkTracks collection"  ,
-					m_MarlinTrkTracks,
-					std::string("MarlinTrkTracks")
-				);
-
-	registerInputCollection(	LCIO::TRACK,
-					"MarlinTrkTracksCollectionKaon" ,
-					"Name of the MarlinTrkTracks collection"  ,
-					m_MarlinTrkTracksKAON,
-					std::string("MarlinTrkTracksKaon")
-				);
-
-	registerInputCollection(	LCIO::TRACK,
-					"MarlinTrkTracksCollectionProton" ,
-					"Name of the MarlinTrkTracks collection"  ,
-					m_MarlinTrkTracksPROTON,
-					std::string("MarlinTrkTracksProton")
-				);
-
-	registerProcessorParameter(	"outputFilename",
-					"name of output file",
-					m_outputFile,
-					std::string("")
-				);
-
-	registerProcessorParameter(	"HistogramsName",
-					"name of histograms",
-					m_histName,
-					std::string("Std. Trk")
-				);
-
-	registerProcessorParameter(	"HistogramsColour",
-					"color of histograms",
-					m_histColour,
-					int(1)
-				);
-
-	registerProcessorParameter(	"minKaonTrackEnergy",
-					"min Energy of Kaons Tracks for histograming",
-					m_minKaonTrackEnergy,
-					float(0.0)
-				);
-
-	registerProcessorParameter(	"minProtonTrackEnergy",
-					"min Energy of Protons Tracks for histograming",
-					m_minProtonTrackEnergy,
-					float(0.0)
-				);
-
-
-	// Inputs: True jets (as a recoparticle, will be the sum of the _reconstructed particles_
-	// created by the true particles in each true jet, in the RecoMCTruthLink sense.
-	// link jet-to-reco particles, link jet-to-MC-particles.
-
 	registerInputCollection( 	LCIO::RECONSTRUCTEDPARTICLE,
 					"TrueJets" ,
 					"Name of the TrueJetCollection input collection",
@@ -188,7 +117,6 @@ m_pTTree(NULL)
 					_initialColourNeutralCollectionName ,
 					std::string("InitialColourNeutrals")
 				);
-
 
 	registerInputCollection( 	LCIO::LCRELATION,
 					"TrueJetPFOLink" ,
@@ -232,6 +160,7 @@ m_pTTree(NULL)
 					std::string("InitialColourNeutralLink")
 				);
 
+
 }
 
 
@@ -240,48 +169,60 @@ void JetErrorAnalysis::init()
 
 	streamlog_out(DEBUG6) << "   init called  " << std::endl ;
 
-	// usually a good idea to
-//	m_Bfield = MarlinUtil::getBzAtOrigin();
-	m_Bfield = 3.5;
-	c = 2.99792458e8;
-	mm2m = 1e-3;
-	eV2GeV = 1e-9;
-	eB = m_Bfield * c * mm2m * eV2GeV;
 	printParameters() ;
-
-	m_pion_mass = 0.13957018;
-	m_proton_mass = 0.938272088;
-	m_kaon_mass = 0.493677;
 
 	m_nRun = 0 ;
 	m_nEvt = 0 ;
 
 	m_pTFile = new TFile(m_outputFile.c_str(),"recreate");
-
 	m_pTTree = new TTree("eventTree","eventTree");
 	m_pTTree->SetDirectory(m_pTFile);
 	m_pTTree->Branch("run", &m_nRun, "run/I");
 	m_pTTree->Branch("event", &m_nEvt, "event/I");
 	m_pTTree->Branch("nTrueJets",&m_nTrueJets,"nTrueJets/I") ;
-	m_pTTree->Branch("nTrueLeptons",&m_nTrueLeptons,"nTrueLeptons/I") ;
 	m_pTTree->Branch("nRecoJets",&m_nRecoJets,"nRecoJets/I") ;
-	m_pTTree->Branch("nRecoLeptons",&m_nRecoLeptons,"nRecoLeptons/I") ;
-	m_pTTree->Branch("HDecayMode",&m_HDecayMode,"HDecayMode/I") ;
-	m_pTTree->Branch("nSLDecayBHadron",&m_nSLDecayBHadron,"nSLDecayBHadron/I") ;
-	m_pTTree->Branch("nSLDecayCHadron",&m_nSLDecayCHadron,"nSLDecayCHadron/I") ;
-	m_pTTree->Branch("nSLDecayTotal",&m_nSLDecayTotal,"nSLDecayTotal/I") ;
-	m_pTTree->Branch("trueKaonEnergy",&m_trueKaonEnergy) ;
-	m_pTTree->Branch("trueKaonEnergyTotal",&m_trueKaonEnergyTotal,"trueKaonEnergyTotal/F") ;
-	m_pTTree->Branch("trueProtonEnergy",&m_trueProtonEnergy) ;
-	m_pTTree->Branch("trueProtonEnergyTotal",&m_trueProtonEnergyTotal,"trueProtonEnergyTotal/F") ;
-	m_pTTree->Branch("pionTrackEnergy",&m_pionTrackEnergy) ;
-	m_pTTree->Branch("pionTrackEnergyTotal",&m_pionTrackEnergyTotal,"pionTrackEnergyTotal/F") ;
-	m_pTTree->Branch("protonTrackEnergy",&m_protonTrackEnergy) ;
-	m_pTTree->Branch("protonTrackEnergyinJet",&m_ProtonTrackEnergyinJet) ;
-	m_pTTree->Branch("protonTrackEnergyTotal",&m_protonTrackEnergyTotal,"protonTrackEnergyTotal/F") ;
-	m_pTTree->Branch("kaonTrackEnergy",&m_kaonTrackEnergy) ;
-	m_pTTree->Branch("kaonTrackEnergyinJet",&m_KaonTrackEnergyinJet) ;
-	m_pTTree->Branch("kaonTrackEnergyTotal",&m_kaonTrackEnergyTotal,"kaonTrackEnergyTotal/F") ;
+	m_pTTree->Branch("quarkPx",&m_quarkPx) ;
+	m_pTTree->Branch("quarkPy",&m_quarkPy) ;
+	m_pTTree->Branch("quarkPz",&m_quarkPz) ;
+	m_pTTree->Branch("quarkE",&m_quarkE) ;
+	m_pTTree->Branch("quarkTheta",&m_quarkTheta) ;
+	m_pTTree->Branch("quarkPhi",&m_quarkPhi) ;
+	m_pTTree->Branch("trueJetPx",&m_trueJetPx) ;
+	m_pTTree->Branch("trueJetPy",&m_trueJetPy) ;
+	m_pTTree->Branch("trueJetPz",&m_trueJetPz) ;
+	m_pTTree->Branch("trueJetE",&m_trueJetE) ;
+	m_pTTree->Branch("trueJetTheta",&m_trueJetTheta) ;
+	m_pTTree->Branch("trueJetPhi",&m_trueJetPhi) ;
+	m_pTTree->Branch("trueSeenJetPx",&m_trueSeenJetPx) ;
+	m_pTTree->Branch("trueSeenJetPy",&m_trueSeenJetPy) ;
+	m_pTTree->Branch("trueSeenJetPz",&m_trueSeenJetPz) ;
+	m_pTTree->Branch("trueSeenJetE",&m_trueSeenJetE) ;
+	m_pTTree->Branch("trueSeenJetTheta",&m_trueSeenJetTheta) ;
+	m_pTTree->Branch("trueSeenJetPhi",&m_trueSeenJetPhi) ;
+	m_pTTree->Branch("seenJetPx",&m_seenJetPx) ;
+	m_pTTree->Branch("seenJetPy",&m_seenJetPy) ;
+	m_pTTree->Branch("seenJetPz",&m_seenJetPz) ;
+	m_pTTree->Branch("seenJetE",&m_seenJetE) ;
+	m_pTTree->Branch("seenJetTheta",&m_seenJetTheta) ;
+	m_pTTree->Branch("seenJetPhi",&m_seenJetPhi) ;
+	m_pTTree->Branch("recoJetPx",&m_recoJetPx) ;
+	m_pTTree->Branch("recoJetPy",&m_recoJetPy) ;
+	m_pTTree->Branch("recoJetPz",&m_recoJetPz) ;
+	m_pTTree->Branch("recoJetE",&m_recoJetE) ;
+	m_pTTree->Branch("recoJetTheta",&m_recoJetTheta) ;
+	m_pTTree->Branch("recoJetPhi",&m_recoJetPhi) ;
+	m_pTTree->Branch("jetSigmaPx2",&m_jetSigmaPx2) ;
+	m_pTTree->Branch("jetSigmaPxPy",&m_jetSigmaPxPy) ;
+	m_pTTree->Branch("jetSigmaPy2",&m_jetSigmaPy2) ;
+	m_pTTree->Branch("jetSigmaPxPz",&m_jetSigmaPxPz) ;
+	m_pTTree->Branch("jetSigmaPyPz",&m_jetSigmaPyPz) ;
+	m_pTTree->Branch("jetSigmaPz2",&m_jetSigmaPz2) ;
+	m_pTTree->Branch("jetSigmaPxE",&m_jetSigmaPxE) ;
+	m_pTTree->Branch("jetSigmaPyE",&m_jetSigmaPyE) ;
+	m_pTTree->Branch("jetSigmaPzE",&m_jetSigmaPzE) ;
+	m_pTTree->Branch("jetSigmaE2",&m_jetSigmaE2) ;
+	m_pTTree->Branch("jetSigmaTheta2",&m_jetSigmaTheta2) ;
+	m_pTTree->Branch("jetSigmaPhi2",&m_jetSigmaPhi2) ;
 	m_pTTree->Branch("ResidualPx",&m_ResidualPx) ;
 	m_pTTree->Branch("ResidualPy",&m_ResidualPy) ;
 	m_pTTree->Branch("ResidualPz",&m_ResidualPz) ;
@@ -296,44 +237,81 @@ void JetErrorAnalysis::init()
 	m_pTTree->Branch("NormalizedResidualPhi",&m_NormalizedResidualPhi) ;
 	m_pTTree->Branch("trueJetType",&m_trueJetType) ;
 	m_pTTree->Branch("trueJetFlavour",&m_trueJetFlavour) ;
-	h_ResidualPx = new TH1F( m_histName.c_str() , ( m_histName + "; _{}p_{x,jet}^{REC} - p_{x,jet}^{MC} [GeV]; Normalized Entries / 0.1" ).c_str() , 200 , -10.0 , 10.0 ); n_ResidualPx = 0;
-	h_ResidualPy = new TH1F( m_histName.c_str() , ( m_histName + "; _{}p_{y,jet}^{REC} - p_{y,jet}^{MC} [GeV]; Normalized Entries / 0.1" ).c_str() , 200 , -10.0 , 10.0 ); n_ResidualPy = 0;
-	h_ResidualPz = new TH1F( m_histName.c_str() , ( m_histName + "; _{}p_{z,jet}^{REC} - p_{z,jet}^{MC} [GeV]; Normalized Entries / 0.1" ).c_str() , 200 , -10.0 , 10.0 ); n_ResidualPz = 0;
-	h_ResidualE = new TH1F( m_histName.c_str() , ( m_histName + "; _{}E_{jet}^{REC} - E_{jet}^{MC} [GeV]; Normalized Entries / 0.1" ).c_str() , 200 , -10.0 , 10.0 ); n_ResidualE = 0;
-	h_ResidualTheta = new TH1F( m_histName.c_str() , ( m_histName + "; _{}#theta_{jet}^{REC} - #theta_{jet}^{MC} [rad]; Normalized Entries / 0.1" ).c_str() , 20 * 3.14159265 , -3.14159265 , 3.14159265 ); n_ResidualTheta = 0;
-	h_ResidualPhi = new TH1F( m_histName.c_str() , ( m_histName + "; _{}#phi_{jet}^{REC} - #phi_{jet}^{MC} [rad]; Normalized Entries / 0.1" ).c_str() , 20 * 3.14159265 , -3.14159265 , 3.14159265 ); n_ResidualPhi = 0;
-	h_NormalizedResidualPx = new TH1F( m_histName.c_str() , ( m_histName + "; (_{}p_{x,jet}^{REC} - p_{x,jet}^{MC}) / #sigma_{p_{x,jet}}; Normalized Entries / 0.1" ).c_str() , 200 , -10.0 , 10.0 ); n_NormalizedResidualPx = 0;
-	h_NormalizedResidualPy = new TH1F( m_histName.c_str() , ( m_histName + "; (_{}p_{y,jet}^{REC} - p_{y,jet}^{MC}) / #sigma_{p_{y,jet}}; Normalized Entries / 0.1" ).c_str() , 200 , -10.0 , 10.0 ); n_NormalizedResidualPy = 0;
-	h_NormalizedResidualPz = new TH1F( m_histName.c_str() , ( m_histName + "; (_{}p_{z,jet}^{REC} - p_{z,jet}^{MC}) / #sigma_{p_{z,jet}}; Normalized Entries / 0.1" ).c_str() , 200 , -10.0 , 10.0 ); n_NormalizedResidualPz = 0;
-	h_NormalizedResidualE = new TH1F( m_histName.c_str() , ( m_histName + "; (_{}E_{jet}^{REC} - E_{jet}^{MC}) / #sigma_{E_{jet}}; Normalized Entries / 0.1" ).c_str() , 200 , -10.0 , 10.0 ); n_NormalizedResidualE = 0;
-	h_NormalizedResidualTheta = new TH1F( m_histName.c_str() , ( m_histName + "; (_{}#theta_{jet}^{REC} - #theta_{jet}^{MC}) / #sigma_{#theta_{jet}}; Normalized Entries / 0.1" ).c_str() , 200 , -10.0 , 10.0 ); n_NormalizedResidualTheta = 0;
-	h_NormalizedResidualPhi = new TH1F( m_histName.c_str() , ( m_histName + "; (_{}#phi_{jet}^{REC} - #phi_{jet}^{MC}) / #sigma_{#phi_{jet}}; Normalized Entries / 0.1" ).c_str() , 200 , -10.0 , 10.0 ); n_NormalizedResidualPhi = 0;
+	m_pTTree->Branch("recoJetFlavour",&m_recoJetFlavour) ;
+	h_ResidualPx = new TH1F( m_histName.c_str() , "; ^{}_{}p_{x,jet}^{REC} - p_{x,jet}^{TRUE} [GeV]; Normalized #jet / 0.1 GeV" , 400 , -20.0 , 20.0 );
+	h_ResidualPy = new TH1F( m_histName.c_str() , "; ^{}_{}p_{y,jet}^{REC} - p_{y,jet}^{TRUE} [GeV]; Normalized #jet / 0.1 GeV" , 400 , -20.0 , 20.0 );
+	h_ResidualPz = new TH1F( m_histName.c_str() , "; ^{}_{}p_{z,jet}^{REC} - p_{z,jet}^{TRUE} [GeV]; Normalized #jet / 0.1 GeV" , 400 , -20.0 , 20.0 );
+	h_ResidualE = new TH1F( m_histName.c_str() , "; ^{}_{}E_{jet}^{REC} - E_{jet}^{TRUE} [GeV]; Normalized #jet / 0.1 GeV" , 400 , -20.0 , 20.0 );
+	h_ResidualTheta = new TH1F( m_histName.c_str() , "; ^{}_{}#theta_{jet}^{REC} - #theta_{jet}^{TRUE} [rad]; Normalized #jet / 0.01" , 200 * 3.14159265 , -3.14159265 , 3.14159265 );
+	h_ResidualPhi = new TH1F( m_histName.c_str() , "; ^{}_{}#phi_{jet}^{REC} - #phi_{jet}^{TRUE} [rad]; Normalized #jet / 0.01" , 200 * 3.14159265 , -3.14159265 , 3.14159265 );
+	h_NormalizedResidualPx = new TH1F( m_histName.c_str() , "; (^{}_{}p_{x,jet}^{REC} - p_{x,jet}^{TRUE}) / #sigma_{p_{x,jet}}; Normalized #jet / 0.1" , 200 , -10.0 , 10.0 );
+	h_NormalizedResidualPy = new TH1F( m_histName.c_str() , "; (^{}_{}p_{y,jet}^{REC} - p_{y,jet}^{TRUE}) / #sigma_{p_{y,jet}}; Normalized #jet / 0.1" , 200 , -10.0 , 10.0 );
+	h_NormalizedResidualPz = new TH1F( m_histName.c_str() , "; (^{}_{}p_{z,jet}^{REC} - p_{z,jet}^{TRUE}) / #sigma_{p_{z,jet}}; Normalized #jet / 0.1" , 200 , -10.0 , 10.0 );
+	h_NormalizedResidualE = new TH1F( m_histName.c_str() , "; (^{}_{}E_{jet}^{REC} - E_{jet}^{TRUE}) / #sigma_{E_{jet}}; Normalized #jet / 0.1" , 200 , -10.0 , 10.0 );
+	h_NormalizedResidualTheta = new TH1F( m_histName.c_str() , "; (^{}_{}#theta_{jet}^{REC} - #theta_{jet}^{TRUE}) / #sigma_{#theta_{jet}}; Normalized #jet / 0.1" , 200 , -10.0 , 10.0 );
+	h_NormalizedResidualPhi = new TH1F( m_histName.c_str() , "; (^{}_{}#phi_{jet}^{REC} - #phi_{jet}^{TRUE}) / #sigma_{#phi_{jet}}; Normalized #jet / 0.1" , 200 , -10.0 , 10.0 );
+	m_histName = ( m_histName + "(without invisibles)" ).c_str();
+	h_ResidualPxSeen = new TH1F( m_histName.c_str() , "; ^{}_{}p_{x,jet}^{REC} - p_{x,jet}^{TRUE} [GeV]; Normalized #jet / 0.1 GeV" , 400 , -20.0 , 20.0 );
+	h_ResidualPySeen = new TH1F( m_histName.c_str() , "; ^{}_{}p_{y,jet}^{REC} - p_{y,jet}^{TRUE} [GeV]; Normalized #jet / 0.1 GeV" , 400 , -20.0 , 20.0 );
+	h_ResidualPzSeen = new TH1F( m_histName.c_str() , "; ^{}_{}p_{z,jet}^{REC} - p_{z,jet}^{TRUE} [GeV]; Normalized #jet / 0.1 GeV" , 400 , -20.0 , 20.0 );
+	h_ResidualESeen = new TH1F( m_histName.c_str() , "; ^{}_{}E_{jet}^{REC} - E_{jet}^{TRUE} [GeV]; Normalized #jet / 0.1 GeV" , 400 , -20.0 , 20.0 );
+	h_ResidualThetaSeen = new TH1F( m_histName.c_str() , "; ^{}_{}#theta_{jet}^{REC} - #theta_{jet}^{TRUE} [rad]; Normalized #jet / 0.01" , 200 * 3.14159265 , -3.14159265 , 3.14159265 );
+	h_ResidualPhiSeen = new TH1F( m_histName.c_str() , "; ^{}_{}#phi_{jet}^{REC} - #phi_{jet}^{TRUE} [rad]; Normalized #jet / 0.01" , 200 * 3.14159265 , -3.14159265 , 3.14159265 );
+	h_NormalizedResidualPxSeen = new TH1F( m_histName.c_str() , "; (^{}_{}p_{x,jet}^{REC} - p_{x,jet}^{TRUE}) / #sigma_{p_{x,jet}}; Normalized #jet / 0.1" , 200 , -10.0 , 10.0 );
+	h_NormalizedResidualPySeen = new TH1F( m_histName.c_str() , "; (^{}_{}p_{y,jet}^{REC} - p_{y,jet}^{TRUE}) / #sigma_{p_{y,jet}}; Normalized #jet / 0.1" , 200 , -10.0 , 10.0 );
+	h_NormalizedResidualPzSeen = new TH1F( m_histName.c_str() , "; (^{}_{}p_{z,jet}^{REC} - p_{z,jet}^{TRUE}) / #sigma_{p_{z,jet}}; Normalized #jet / 0.1" , 200 , -10.0 , 10.0 );
+	h_NormalizedResidualESeen = new TH1F( m_histName.c_str() , "; (^{}_{}E_{jet}^{REC} - E_{jet}^{TRUE}) / #sigma_{E_{jet}}; Normalized #jet / 0.1" , 200 , -10.0 , 10.0 );
+	h_NormalizedResidualThetaSeen = new TH1F( m_histName.c_str() , "; (^{}_{}#theta_{jet}^{REC} - #theta_{jet}^{TRUE}) / #sigma_{#theta_{jet}}; Normalized #jet / 0.1" , 200 , -10.0 , 10.0 );
+	h_NormalizedResidualPhiSeen = new TH1F( m_histName.c_str() , "; (^{}_{}#phi_{jet}^{REC} - #phi_{jet}^{TRUE}) / #sigma_{#phi_{jet}}; Normalized #jet / 0.1" , 200 , -10.0 , 10.0 );
 
 }
 
 void JetErrorAnalysis::Clear()
 {
 	m_nTrueJets = 0;
-	m_nTrueLeptons = 0;
-	m_nTrueLeptons = 0;
 	m_nRecoJets = 0;
-	m_nRecoLeptons = 0;
-	m_HDecayMode = 0;
-	m_nSLDecayBHadron = 0;
-	m_nSLDecayCHadron = 0;
-	m_nSLDecayTotal = 0;
-	m_trueKaonEnergyTotal = 0.0;
-	m_trueKaonEnergy.clear();
-	m_trueProtonEnergyTotal = 0.0;
-	m_trueProtonEnergy.clear();
-	m_pionTrackEnergy.clear();
-	m_pionTrackEnergyTotal = 0.0;
-	m_protonTrackEnergy.clear();
-	m_ProtonTrackEnergyinJet.clear();
-	m_protonTrackEnergyTotal = 0.0;
-	m_kaonTrackEnergy.clear();
-	m_KaonTrackEnergyinJet.clear();
-	m_kaonTrackEnergyTotal = 0.0;
+	m_quarkPx.clear();
+	m_quarkPy.clear();
+	m_quarkPz.clear();
+	m_quarkE.clear();
+	m_quarkTheta.clear();
+	m_quarkPhi.clear();
+	m_trueJetPx.clear();
+	m_trueJetPy.clear();
+	m_trueJetPz.clear();
+	m_trueJetE.clear();
+	m_trueJetTheta.clear();
+	m_trueJetPhi.clear();
+	m_trueSeenJetPx.clear();
+	m_trueSeenJetPy.clear();
+	m_trueSeenJetPz.clear();
+	m_trueSeenJetE.clear();
+	m_trueSeenJetTheta.clear();
+	m_trueSeenJetPhi.clear();
+	m_seenJetPx.clear();
+	m_seenJetPy.clear();
+	m_seenJetPz.clear();
+	m_seenJetE.clear();
+	m_seenJetTheta.clear();
+	m_seenJetPhi.clear();
+	m_recoJetPx.clear();
+	m_recoJetPy.clear();
+	m_recoJetPz.clear();
+	m_recoJetE.clear();
+	m_recoJetTheta.clear();
+	m_recoJetPhi.clear();
+	m_jetSigmaPx2.clear();
+	m_jetSigmaPxPy.clear();
+	m_jetSigmaPy2.clear();
+	m_jetSigmaPxPz.clear();
+	m_jetSigmaPyPz.clear();
+	m_jetSigmaPz2.clear();
+	m_jetSigmaPxE.clear();
+	m_jetSigmaPyE.clear();
+	m_jetSigmaPzE.clear();
+	m_jetSigmaE2.clear();
+	m_jetSigmaTheta2.clear();
+	m_jetSigmaPhi2.clear();
 	m_ResidualPx.clear();
 	m_ResidualPy.clear();
 	m_ResidualPz.clear();
@@ -348,6 +326,7 @@ void JetErrorAnalysis::Clear()
 	m_NormalizedResidualPhi.clear();
 	m_trueJetType.clear();
 	m_trueJetFlavour.clear();
+	m_recoJetFlavour.clear();
 }
 
 void JetErrorAnalysis::processRunHeader()
@@ -359,12 +338,11 @@ void JetErrorAnalysis::processRunHeader()
 void JetErrorAnalysis::processEvent( LCEvent* pLCEvent)
 {
 	LCCollection *recoJetCol{};
-	LCCollection *trueJetCol{};
-	LCCollection *refJetCol{};
+//	LCCollection *trueJetCol{};
 	m_nRun = pLCEvent->getRunNumber();
 	m_nEvt = pLCEvent->getEventNumber();
 	this->Clear();
-	std::string trueJetType[6]{ "hadronic (string)" , "leptonic" , "hadronic(cluster)" , "ISR" , "overlay" , "M.E. photon" };
+	std::string trueJetType[6]{ "hadronic(string)" , "leptonic" , "hadronic(cluster)" , "ISR" , "overlay" , "M.E. photon" };
 	std::string icnType[6]{ "quark pair" , "lepton pair" , "quark pair" , "ISR" , "???" , "M.E. photon" };
 	streamlog_out(MESSAGE) << "" << std::endl;
 	streamlog_out(MESSAGE) << "	////////////////////////////////////////////////////////////////////////////" << std::endl;
@@ -374,98 +352,141 @@ void JetErrorAnalysis::processEvent( LCEvent* pLCEvent)
 	try
 	{
 		recoJetCol		= pLCEvent->getCollection( m_recoJetCollectionName );
-		trueJetCol		= pLCEvent->getCollection( _trueJetCollectionName );
-		refJetCol		= pLCEvent->getCollection( m_referenceJetCollection );
+//		trueJetCol		= pLCEvent->getCollection( _trueJetCollectionName );
 		TrueJet_Parser* trueJet	= this;
-		trueJet->getall(pLCEvent);
+		trueJet->getall( pLCEvent );
 
 		m_nRecoJets = recoJetCol->getNumberOfElements();
 		streamlog_out(DEBUG3) << "	Number of Reconstructed Jets: " << m_nRecoJets << std::endl;
 
 		int njets = trueJet->njets();
 		streamlog_out(DEBUG3) << "	Number of True Jets: " << njets << std::endl;
-		std::vector<int> trueHadronicJetIndices; trueHadronicJetIndices.clear();
-		std::vector<int> recoJetIndices; recoJetIndices.clear();
-		for (int i_jet = 0 ; i_jet < njets ; i_jet++ )
+
+		if ( m_nRecoJets == 0 || njets == 0 ) return;
+
+		std::vector<ReconstructedParticle*> recoJetVector{};
+		std::vector<ReconstructedParticle*> leadingParticles{};
+		std::vector<int> trueJetVectorIndex{};
+
+		for ( int i_recoJet = 0 ; i_recoJet < m_nRecoJets ; ++i_recoJet )
 		{
-			m_trueJetType.push_back( type_jet( i_jet ) );
-			streamlog_out(DEBUG0) << "	Type of True Jet[ " << i_jet << " ]: " << type_jet( i_jet ) << " ( " << trueJetType[ abs( type_jet( i_jet ) ) ] << " ) ; 	PDG of Initial Colour Neutral = " << pdg_icn_parent( initial_cn( i_jet ) ) << " ; 	Type of Final Colour Neutral : " << type_icn_parent( initial_cn( i_jet ) ) << "( " << icnType[ type_icn_parent( initial_cn( i_jet ) ) ] << " )" << std::endl;
-			if ( type_jet( i_jet ) == 1 )
+			ReconstructedParticle *recoJet = dynamic_cast<ReconstructedParticle*>( recoJetCol->getElementAt( i_recoJet ) );
+			ReconstructedParticle* leadingParticle = NULL;
+			float leadingEnergy = 0.0;
+			streamlog_out(DEBUG2) << " looking for leading particle in recoJet " << i_recoJet << " with " << ( recoJet->getParticles() ).size() << " particles" << std::endl;
+			for ( unsigned int i_par = 0 ; i_par < ( recoJet->getParticles() ).size() ; ++i_par )
 			{
-				++m_nTrueJets;
-				trueHadronicJetIndices.push_back( i_jet );
+				ReconstructedParticle* pfo = ( ReconstructedParticle* )recoJet->getParticles()[ i_par ];
+				streamlog_out(DEBUG0) << " checking particle " << i_par << " with Energy = " << pfo->getEnergy() << std::endl;
+				if ( abs( pfo->getType() ) == 12 || abs( pfo->getType() ) == 14 || abs( pfo->getType() ) == 16 ) continue;
+				if ( pfo->getEnergy() > leadingEnergy )
+				{
+					leadingParticle = pfo;
+					leadingEnergy = pfo->getEnergy();
+					streamlog_out(DEBUG0) << "leading particle so far: " << std::endl;
+					streamlog_out(DEBUG0) << *leadingParticle << std::endl;
+				}
+			}
+			if ( leadingParticle != NULL )
+			{
+				int trueJetIndex;
+				LCObjectVec jetvec = reltjreco->getRelatedFromObjects( leadingParticle );
+				streamlog_out(DEBUG2) << jetvec.size() << " true Jet found for leading particle of jet " << i_recoJet << std::endl;
+				if ( jetvec.size() != 0 )
+				{
+					trueJetIndex = jetindex( dynamic_cast<ReconstructedParticle*>( jetvec[ 0 ] ) );
+					recoJetVector.push_back( recoJet );
+					leadingParticles.push_back( leadingParticle );
+					trueJetVectorIndex.push_back( trueJetIndex );
+				}
 			}
 		}
-		streamlog_out(DEBUG3) << "	Number of True Hadronic Jets(type = 1): " << m_nTrueJets << std::endl;
-		double KaonTrackEnergyinJet;
-		double ProtonTrackEnergyinJet;
-		if ( m_nRecoJets == m_nTrueJets )
+		streamlog_out(DEBUG2) << "	" << recoJetVector.size() << " recoJets and " << trueJetVectorIndex.size() << " true Jets are find and matched" << std::endl;
+		for ( unsigned int i_jet = 0 ; i_jet < recoJetVector.size() ; ++i_jet )
 		{
-			for ( int i_trueJet = 0 ; i_trueJet < m_nTrueJets ; ++i_trueJet )
-			{
-				TVector3 trueJetMomentum( ptrueseen( trueHadronicJetIndices[ i_trueJet ] )[ 0 ] , ptrueseen( trueHadronicJetIndices[ i_trueJet ] )[ 1 ] , ptrueseen( trueHadronicJetIndices[ i_trueJet ] )[ 2 ] );
-				streamlog_out(DEBUG2) << "	True(seen) Jet Momentum[ " << trueHadronicJetIndices[ i_trueJet ] << " ]: (	" << ptrueseen( trueHadronicJetIndices[ i_trueJet ] )[ 0 ] << " 	, " << ptrueseen( trueHadronicJetIndices[ i_trueJet ] )[ 1 ] << " 	, " << ptrueseen( trueHadronicJetIndices[ i_trueJet ] )[ 2 ] << "	)" << std::endl;
-				TVector3 trueJetMomentumUnit = trueJetMomentum; trueJetMomentumUnit.SetMag(1.0);
-				float CosWidestAngle = -1.0;
-				int matchedRecoJetIndex = -1;
-				for ( int i_recoJet = 0 ; i_recoJet < m_nRecoJets ; ++i_recoJet )
-				{
-					ReconstructedParticle *recoJet = dynamic_cast<ReconstructedParticle*>( recoJetCol->getElementAt( i_recoJet ) );
-					TVector3 recoJetMometnum( recoJet->getMomentum() );
-					TVector3 recoJetMometnumUnit = recoJetMometnum; recoJetMometnumUnit.SetMag(1.0);
-					streamlog_out(DEBUG2) << "	Reco Jet Momentum[ " << i_recoJet << " ]: (	" << recoJet->getMomentum()[ 0 ] << " 	, " << recoJet->getMomentum()[ 1 ] << " 	, " << recoJet->getMomentum()[ 2 ] << "	)" << std::endl;
-					if ( trueJetMomentumUnit.Dot( recoJetMometnumUnit ) >= CosWidestAngle )
-					{
-						CosWidestAngle = trueJetMomentumUnit.Dot( recoJetMometnumUnit );
-						matchedRecoJetIndex = i_recoJet;
-					}
-				}
-				streamlog_out(DEBUG2) << "	True(seen) Jet [ " << trueHadronicJetIndices[ i_trueJet ] << " ] is matched with RecoJet [ " << matchedRecoJetIndex << " ]" << std::endl;
-				recoJetIndices.push_back( matchedRecoJetIndex );
-			}
-			for ( int i_jet = 0 ; i_jet < m_nTrueJets ; ++i_jet )
-			{
-				bool trueJetCriteria = false;
-				bool recoJetCriteria = false;
-				KaonTrackEnergyinJet = 0.0;
-				ProtonTrackEnergyinJet = 0.0;
-				const EVENT::MCParticleVec& mcpVec =  true_partics( trueHadronicJetIndices[ i_jet ] );
-				streamlog_out(DEBUG3) << "	Number of all MCParticles in trueJet [ " << trueHadronicJetIndices[ i_jet ] << " ] : " << mcpVec.size() << std::endl;
-				for ( unsigned int i_mcp = 0 ; i_mcp < mcpVec.size() ; ++i_mcp )
-				{
-					EVENT::MCParticle *testMCP = mcpVec.at( i_mcp );
-					streamlog_out(DEBUG1) << "	MCParticle [ " << i_mcp << " ] : 	GeneratorStatus = " << testMCP->getGeneratorStatus() << " ; 	PDGCode = " << testMCP->getPDG() << std::endl;
-					if ( testMCP->getGeneratorStatus() == 1 && abs( testMCP->getPDG() ) == 321 )
-					{
-						m_trueKaonEnergy.push_back( testMCP->getEnergy() );
-						m_trueKaonEnergyTotal += testMCP->getEnergy();
-					}
-					else if ( testMCP->getGeneratorStatus() == 1 && abs( testMCP->getPDG() ) == 2212 )
-					{
-						m_trueProtonEnergy.push_back( testMCP->getEnergy() );
-						m_trueProtonEnergyTotal += testMCP->getEnergy();
-					}
-				}
-				ReconstructedParticle *recoJet = dynamic_cast<ReconstructedParticle*>( recoJetCol->getElementAt( recoJetIndices[ i_jet ] ) );
-				ReconstructedParticle *refJet = dynamic_cast<ReconstructedParticle*>( refJetCol->getElementAt( recoJetIndices[ i_jet ] ) );
-				ReconstructedParticleVec jetRecoPFOs  = recoJet->getParticles();
-				ReconstructedParticleVec refjetRecoPFOs  = refJet->getParticles();
-				streamlog_out(DEBUG3) << "	Number of all Reconstructed Particles in recoJet [ " << recoJetIndices[ i_jet ] << " ] : " << jetRecoPFOs.size() << std::endl;
-				streamlog_out(DEBUG3) << "	Number of all Reconstructed Particles in refJet [ " << recoJetIndices[ i_jet ] << " ] : " << refjetRecoPFOs.size() << std::endl;
-				if ( jetRecoPFOs.size() != refjetRecoPFOs.size() ) continue;
-				for ( unsigned int i_pfo = 0 ; i_pfo < jetRecoPFOs.size() ; ++i_pfo )
-				{
-					EVENT::ReconstructedParticle *testPFO = jetRecoPFOs.at( i_pfo );
-					EVENT::ReconstructedParticle *refPFO = refjetRecoPFOs.at( i_pfo );
-					streamlog_out(DEBUG1) << "	PFO [ " << i_pfo << " ] : 	PFO Type = " << testPFO->getType() << std::endl;
-					getTrackInformation( pLCEvent , refPFO , KaonTrackEnergyinJet , ProtonTrackEnergyinJet );
-				}
-				TLorentzVector trueJetFourMomentum( p4trueseen( trueHadronicJetIndices[ i_jet ] )[ 1 ] , p4trueseen( trueHadronicJetIndices[ i_jet ] )[ 2 ] , p4trueseen( trueHadronicJetIndices[ i_jet ] )[ 3 ] , p4trueseen( trueHadronicJetIndices[ i_jet ] )[ 0 ] );
-				m_KaonTrackEnergyinJet.push_back( KaonTrackEnergyinJet );
-				m_ProtonTrackEnergyinJet.push_back( ProtonTrackEnergyinJet );
-				if ( KaonTrackEnergyinJet >= m_minKaonTrackEnergy && ProtonTrackEnergyinJet >= m_minProtonTrackEnergy ) getJetResiduals( trueJetFourMomentum , recoJet );
-			}
-
+			streamlog_out(DEBUG2) << "----------------------------------------------------------------------------------------------------------------" << std::endl;
+			streamlog_out(DEBUG2) << "Reconstructed Jet[ " << i_jet << " ] matches true jet [ " << trueJetVectorIndex[ i_jet ] << " ] by finding leading particle" << std::endl;
+			streamlog_out(DEBUG2) << "	trueJet TYPE:	" << type_jet( trueJetVectorIndex[ i_jet ] ) << std::endl;
+			streamlog_out(DEBUG2) << "	trueJet (Px,Py,Pz,E):	" << ptrue( trueJetVectorIndex[ i_jet ] )[ 0 ] << " , " << ptrue( trueJetVectorIndex[ i_jet ] )[ 1 ] << " , " << ptrue( trueJetVectorIndex[ i_jet ] )[ 2 ] << " , " << Etrue( trueJetVectorIndex[ i_jet ] ) << std::endl;
+			streamlog_out(DEBUG2) << "	recoJet:" << std::endl;
+			streamlog_out(DEBUG2) << *recoJetVector[ i_jet ] << std::endl;
+			streamlog_out(DEBUG2) << "	leadingParticle:" << std::endl;
+			streamlog_out(DEBUG2) << *leadingParticles[ i_jet ] << std::endl;
+			streamlog_out(DEBUG2) << "" << std::endl;
+			TVector3 quarkMomentum( pquark( trueJetVectorIndex[ i_jet ] )[ 0 ] , pquark( trueJetVectorIndex[ i_jet ] )[ 1 ] , pquark( trueJetVectorIndex[ i_jet ] )[ 2 ] );
+			double quarkEnergy = Equark( trueJetVectorIndex[ i_jet ] );
+			TVector3 jetTrueMomentum( ptrue( trueJetVectorIndex[ i_jet ] )[ 0 ] , ptrue( trueJetVectorIndex[ i_jet ] )[ 1 ] , ptrue( trueJetVectorIndex[ i_jet ] )[ 2 ] );
+			double jetTrueEnergy = Etrue( trueJetVectorIndex[ i_jet ] );
+			TVector3 jetTrueSeenMomentum( ptrueseen( trueJetVectorIndex[ i_jet ] )[ 0 ] , ptrueseen( trueJetVectorIndex[ i_jet ] )[ 1 ] , ptrueseen( trueJetVectorIndex[ i_jet ] )[ 2 ] );
+			double jetTrueSeenEnergy = Etrueseen( trueJetVectorIndex[ i_jet ] );
+			TVector3 jetSeenMomentum( pseen( trueJetVectorIndex[ i_jet ] )[ 0 ] , pseen( trueJetVectorIndex[ i_jet ] )[ 1 ] , pseen( trueJetVectorIndex[ i_jet ] )[ 2 ] );
+			double jetSeenEnergy = Eseen( trueJetVectorIndex[ i_jet ] );
+			TVector3 jetRecoMomentum( recoJetVector[ i_jet ]->getMomentum() );
+			double jetRecoEnergy = recoJetVector[ i_jet ]->getEnergy();
+			double jetPxResidual , jetPyResidual , jetPzResidual , jetEnergyResidual , jetThetaResidual , jetPhiResidual;
+			double jetPxResidualSeen , jetPyResidualSeen , jetPzResidualSeen , jetEnergyResidualSeen , jetThetaResidualSeen , jetPhiResidualSeen;
+			double jetSigmaE , jetSigmaTheta , jetSigmaPhi;
+			getJetResiduals( jetTrueMomentum , jetTrueEnergy , jetRecoMomentum , jetRecoEnergy , jetPxResidual , jetPyResidual , jetPzResidual , jetEnergyResidual , jetThetaResidual , jetPhiResidual );
+			getJetResiduals( jetTrueSeenMomentum , jetTrueSeenEnergy , jetRecoMomentum , jetRecoEnergy , jetPxResidualSeen , jetPyResidualSeen , jetPzResidualSeen , jetEnergyResidualSeen , jetThetaResidualSeen , jetPhiResidualSeen );
+			getJetResolutions( TLorentzVector( jetRecoMomentum , jetRecoEnergy ) , recoJetVector[ i_jet ]->getCovMatrix() , jetSigmaE , jetSigmaTheta , jetSigmaPhi );
+			m_quarkPx.push_back( quarkMomentum.Px() );		m_quarkPy.push_back( quarkMomentum.Py() );			m_quarkPz.push_back( quarkMomentum.Pz() );
+			m_quarkE.push_back( quarkEnergy );			m_quarkTheta.push_back( quarkMomentum.Theta() );		m_quarkPhi.push_back( quarkMomentum.Phi() );
+			m_trueJetPx.push_back( jetTrueMomentum.Px() );		m_trueJetPy.push_back( jetTrueMomentum.Py() );			m_trueJetPz.push_back( jetTrueMomentum.Pz() );
+			m_trueJetE.push_back( jetTrueEnergy );			m_trueJetTheta.push_back( jetTrueMomentum.Theta() );		m_trueJetPhi.push_back( jetTrueMomentum.Phi() );
+			m_trueSeenJetPx.push_back( jetTrueSeenMomentum.Px() );	m_trueSeenJetPy.push_back( jetTrueSeenMomentum.Py() );		m_trueSeenJetPz.push_back( jetTrueSeenMomentum.Pz() );
+			m_trueSeenJetE.push_back( jetTrueSeenEnergy );		m_trueSeenJetTheta.push_back( jetTrueSeenMomentum.Theta() );	m_trueSeenJetPhi.push_back( jetTrueSeenMomentum.Phi() );
+			m_seenJetPx.push_back( jetSeenMomentum.Px() );		m_seenJetPy.push_back( jetSeenMomentum.Py() );			m_seenJetPz.push_back( jetSeenMomentum.Pz() );
+			m_seenJetE.push_back( jetSeenEnergy );			m_seenJetTheta.push_back( jetSeenMomentum.Theta() );		m_seenJetPhi.push_back( jetSeenMomentum.Phi() );
+			m_recoJetPx.push_back( jetRecoMomentum.Px() );		m_recoJetPy.push_back( jetRecoMomentum.Py() );			m_recoJetPz.push_back( jetRecoMomentum.Pz() );
+			m_recoJetE.push_back( jetRecoEnergy );			m_recoJetTheta.push_back( jetRecoMomentum.Theta() );		m_recoJetPhi.push_back( jetRecoMomentum.Phi() );
+			m_jetSigmaPx2.push_back( recoJetVector[ i_jet ]->getCovMatrix()[ 0 ] );
+			m_jetSigmaPxPy.push_back( recoJetVector[ i_jet ]->getCovMatrix()[ 1 ] );
+			m_jetSigmaPy2.push_back( recoJetVector[ i_jet ]->getCovMatrix()[ 2 ] );
+			m_jetSigmaPxPz.push_back( recoJetVector[ i_jet ]->getCovMatrix()[ 3 ] );
+			m_jetSigmaPyPz.push_back( recoJetVector[ i_jet ]->getCovMatrix()[ 4 ] );
+			m_jetSigmaPz2.push_back( recoJetVector[ i_jet ]->getCovMatrix()[ 5 ] );
+			m_jetSigmaPxE.push_back( recoJetVector[ i_jet ]->getCovMatrix()[ 6 ] );
+			m_jetSigmaPyE.push_back( recoJetVector[ i_jet ]->getCovMatrix()[ 7 ] );
+			m_jetSigmaPzE.push_back( recoJetVector[ i_jet ]->getCovMatrix()[ 8 ] );
+			m_jetSigmaE2.push_back( recoJetVector[ i_jet ]->getCovMatrix()[ 9 ] );
+			m_jetSigmaTheta2.push_back( pow( jetSigmaTheta , 2 ) );
+			m_jetSigmaPhi2.push_back( pow( jetSigmaPhi , 2 ) );
+			m_ResidualPx.push_back( jetPxResidual ); h_ResidualPx->Fill( jetPxResidual );
+			m_ResidualPy.push_back( jetPyResidual ); h_ResidualPy->Fill( jetPyResidual );
+			m_ResidualPz.push_back( jetPzResidual ); h_ResidualPz->Fill( jetPzResidual );
+			m_ResidualE.push_back( jetEnergyResidual ); h_ResidualE->Fill( jetEnergyResidual );
+			m_ResidualTheta.push_back( jetThetaResidual ); h_ResidualTheta->Fill( jetThetaResidual );
+			m_ResidualPhi.push_back( jetPhiResidual ); h_ResidualPhi->Fill( jetPhiResidual );
+			m_NormalizedResidualPx.push_back( jetPxResidual / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 0 ] ) );
+			m_NormalizedResidualPy.push_back( jetPyResidual / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 2 ] ) );
+			m_NormalizedResidualPz.push_back( jetPzResidual / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 5 ] ) );
+			m_NormalizedResidualE.push_back( jetEnergyResidual / jetSigmaE );
+			m_NormalizedResidualTheta.push_back( jetThetaResidual / jetSigmaTheta );
+			m_NormalizedResidualPhi.push_back( jetPhiResidual / jetSigmaPhi );
+			h_NormalizedResidualPx->Fill( jetPxResidual / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 0 ] ) );
+			h_NormalizedResidualPy->Fill( jetPyResidual / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 2 ] ) );
+			h_NormalizedResidualPz->Fill( jetPzResidual / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 5 ] ) );
+			h_NormalizedResidualE->Fill( jetEnergyResidual / jetSigmaE );
+			h_NormalizedResidualTheta->Fill( jetThetaResidual / jetSigmaTheta );
+			h_NormalizedResidualPhi->Fill( jetPhiResidual / jetSigmaPhi );
+			m_ResidualPxSeen.push_back( jetPxResidualSeen ); h_ResidualPxSeen->Fill( jetPxResidualSeen );
+			m_ResidualPySeen.push_back( jetPyResidualSeen ); h_ResidualPySeen->Fill( jetPyResidualSeen );
+			m_ResidualPzSeen.push_back( jetPzResidualSeen ); h_ResidualPzSeen->Fill( jetPzResidualSeen );
+			m_ResidualESeen.push_back( jetEnergyResidualSeen ); h_ResidualESeen->Fill( jetEnergyResidualSeen );
+			m_ResidualThetaSeen.push_back( jetThetaResidualSeen ); h_ResidualThetaSeen->Fill( jetThetaResidualSeen );
+			m_ResidualPhiSeen.push_back( jetPhiResidualSeen ); h_ResidualPhiSeen->Fill( jetPhiResidualSeen );
+			m_NormalizedResidualPxSeen.push_back( jetPxResidualSeen / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 0 ] ) );
+			m_NormalizedResidualPySeen.push_back( jetPyResidualSeen / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 2 ] ) );
+			m_NormalizedResidualPzSeen.push_back( jetPzResidualSeen / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 5 ] ) );
+			m_NormalizedResidualESeen.push_back( jetEnergyResidualSeen / jetSigmaE );
+			m_NormalizedResidualThetaSeen.push_back( jetThetaResidualSeen / jetSigmaTheta );
+			m_NormalizedResidualPhiSeen.push_back( jetPhiResidualSeen / jetSigmaPhi );
+			h_NormalizedResidualPxSeen->Fill( jetPxResidualSeen / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 0 ] ) );
+			h_NormalizedResidualPySeen->Fill( jetPyResidualSeen / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 2 ] ) );
+			h_NormalizedResidualPzSeen->Fill( jetPzResidualSeen / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 5 ] ) );
+			h_NormalizedResidualESeen->Fill( jetEnergyResidualSeen / jetSigmaE );
+			h_NormalizedResidualThetaSeen->Fill( jetThetaResidualSeen / jetSigmaTheta );
+			h_NormalizedResidualPhiSeen->Fill( jetPhiResidualSeen / jetSigmaPhi );
 		}
 		m_nEvtSum++;
 		m_nEvt++ ;
@@ -479,187 +500,56 @@ void JetErrorAnalysis::processEvent( LCEvent* pLCEvent)
 
 }
 
-void JetErrorAnalysis::getJetResiduals( TLorentzVector trueJetFourMomentum , EVENT::ReconstructedParticle *recoJet )
+void JetErrorAnalysis::getJetResiduals( TVector3 jetTrueMomentum , double jetTrueEnergy , TVector3 jetRecoMomentum , double jetRecoEnergy , double &jetPxResidual , double &jetPyResidual , double &jetPzResidual , double &jetEnergyResidual , double &jetThetaResidual , double &jetPhiResidual )
 {
-	double trueJetPx = trueJetFourMomentum.Px();
-	double trueJetPy = trueJetFourMomentum.Py();
-	double trueJetPz = trueJetFourMomentum.Pz();
-	double trueJetE = trueJetFourMomentum.E();
-	double trueJetTheta = trueJetFourMomentum.Theta();
-	double trueJetPhi = trueJetFourMomentum.Phi();
-	TVector3 trueP( trueJetPx , trueJetPy , trueJetPz );
-	TVector3 truePunit = trueP; truePunit.SetMag(1.0);
-	TVector3 truePt( trueJetPx , trueJetPy , 0.0 );
-	TVector3 truePtunit = truePt; truePtunit.SetMag(1.0);
-	TLorentzVector recoJetFourMomentum( recoJet->getMomentum()[ 0 ] , recoJet->getMomentum()[ 1 ] , recoJet->getMomentum()[ 2 ] , recoJet->getEnergy() );
-	double recoJetPx = recoJetFourMomentum.Px();
-	double recoJetPy = recoJetFourMomentum.Py();
-	double recoJetPz = recoJetFourMomentum.Pz();
-	double recoJetPt = std::sqrt( pow( recoJetPx , 2 ) + pow( recoJetPy , 2 ) );
-	double recoJetPt2 = pow( recoJetPx , 2 ) + pow( recoJetPy , 2 );
-	double recoJetP2 = pow( recoJetPx , 2 ) + pow( recoJetPy , 2 ) + pow( recoJetPz , 2 );
-	double recoJetE = recoJetFourMomentum.E();
-	double recoJetTheta = recoJetFourMomentum.Theta();
-	double recoJetPhi = recoJetFourMomentum.Phi();
-	TVector3 recoP( recoJetPx , recoJetPy , recoJetPz );
-	TVector3 recoPunit = recoP; recoPunit.SetMag(1.0);
-	TVector3 recoProtated = recoP; recoProtated.SetMag(1.0); recoProtated.SetPhi( trueJetPhi );
-	TVector3 recoPt( recoJetPx , recoJetPy , 0.0 );
-	TVector3 recoPtunit = recoPt; recoPtunit.SetMag(1.0);
-	double sigmaPx2 = recoJet->getCovMatrix()[ 0 ];
-	double sigmaPxPy = recoJet->getCovMatrix()[ 1 ];
-	double sigmaPy2 = recoJet->getCovMatrix()[ 2 ];
-	double sigmaPxPz = recoJet->getCovMatrix()[ 3 ];
-	double sigmaPyPz = recoJet->getCovMatrix()[ 4 ];
-	double sigmaPz2 = recoJet->getCovMatrix()[ 5 ];
-	double sigmaPxE = recoJet->getCovMatrix()[ 6 ];
-	double sigmaPyE = recoJet->getCovMatrix()[ 7 ];
-	double sigmaPzE = recoJet->getCovMatrix()[ 8 ];
-	double sigmaE2 = recoJet->getCovMatrix()[ 9 ];
-	double dTheta_dPx = recoJetPx * recoJetPz / ( recoJetP2 * recoJetPt );
-	double dTheta_dPy = recoJetPy * recoJetPz / ( recoJetP2 * recoJetPt );
-	double dTheta_dPz = -recoJetPt / recoJetP2;
-	double dPhi_dPx = -recoJetPy / recoJetPt2;
-	double dPhi_dPy = recoJetPx / recoJetPt2;
-	double sigmaTheta = std::sqrt( std::fabs( sigmaPx2 * std::pow( dTheta_dPx , 2 ) + sigmaPy2 * std::pow( dTheta_dPy , 2 ) + sigmaPz2 * std::pow( dTheta_dPz , 2 ) + 2 * ( sigmaPxPy * dTheta_dPx * dTheta_dPy ) + 2 * ( sigmaPxPz * dTheta_dPx * dTheta_dPz ) + 2 * ( sigmaPyPz * dTheta_dPy * dTheta_dPz ) ) );
-	double sigmaPhi = std::sqrt( std::fabs( sigmaPx2 * std::pow( dPhi_dPx , 2 ) + sigmaPy2 * std::pow( dPhi_dPy , 2 ) + 2 * ( sigmaPxPy * dPhi_dPx * dPhi_dPy ) ) );
-	m_ResidualPx.push_back( recoJetPx - trueJetPx );
-	h_ResidualPx->Fill( recoJetPx - trueJetPx ); ++n_ResidualPx;
-	m_ResidualPy.push_back( recoJetPy - trueJetPy );
-	h_ResidualPy->Fill( recoJetPy - trueJetPy ); ++n_ResidualPy;
-	m_ResidualPz.push_back( recoJetPz - trueJetPz );
-	h_ResidualPz->Fill( recoJetPz - trueJetPz ); ++n_ResidualPz;
-	m_ResidualE.push_back( recoJetE - trueJetE );
-	h_ResidualE->Fill( recoJetE - trueJetE ); ++n_ResidualE;
-	m_NormalizedResidualPx.push_back( ( recoJetPx - trueJetPx ) / std::sqrt( sigmaPx2 ) );
-	h_NormalizedResidualPx->Fill( ( recoJetPx - trueJetPx ) / std::sqrt( sigmaPx2 ) ); ++n_NormalizedResidualPx;
-	m_NormalizedResidualPy.push_back( ( recoJetPy - trueJetPy ) / std::sqrt( sigmaPy2 ) );
-	h_NormalizedResidualPy->Fill( ( recoJetPy - trueJetPy ) / std::sqrt( sigmaPy2 ) ); ++n_NormalizedResidualPy;
-	m_NormalizedResidualPz.push_back( ( recoJetPz - trueJetPz ) / std::sqrt( sigmaPz2 ) );
-	h_NormalizedResidualPz->Fill( ( recoJetPz - trueJetPz ) / std::sqrt( sigmaPz2 ) ); ++n_NormalizedResidualPz;
-	m_NormalizedResidualE.push_back( ( recoJetE - trueJetE ) / std::sqrt( sigmaE2 ) );
-	h_NormalizedResidualE->Fill( ( recoJetE - trueJetE ) / std::sqrt( sigmaE2 ) ); ++n_NormalizedResidualE;
-	double ThetaResidual = ( ( recoJetTheta - trueJetTheta ) > 0 ? acos( truePunit.Dot(recoProtated) ) : -1 * acos( truePunit.Dot(recoProtated) ) );
-	m_ResidualTheta.push_back( ThetaResidual );
-	h_ResidualTheta->Fill( ThetaResidual ); ++n_ResidualTheta;
-	m_NormalizedResidualTheta.push_back( ThetaResidual / sigmaTheta );
-	h_NormalizedResidualTheta->Fill( ThetaResidual / sigmaTheta ); ++n_NormalizedResidualTheta;
-	double PhiResidual = ( ( recoJetPhi - trueJetPhi ) > 0 ? acos( truePtunit.Dot(recoPtunit) ) : -1 * acos( truePtunit.Dot(recoPtunit) ) );
-	m_ResidualPhi.push_back( PhiResidual );
-	h_ResidualPhi->Fill( PhiResidual ); ++n_ResidualPhi;
-	m_NormalizedResidualPhi.push_back( PhiResidual / sigmaPhi );
-	h_NormalizedResidualPhi->Fill( PhiResidual / sigmaPhi ); ++n_NormalizedResidualPhi;
+	jetPxResidual = jetRecoMomentum.Px() - jetTrueMomentum.Px();
+	jetPyResidual = jetRecoMomentum.Py() - jetTrueMomentum.Py();
+	jetPzResidual = jetRecoMomentum.Pz() - jetTrueMomentum.Pz();
+	jetEnergyResidual = jetRecoEnergy - jetTrueEnergy;
+	TVector3 jetTrueMomentumUnit = jetTrueMomentum; jetTrueMomentumUnit.SetMag( 1.0 );
+	TVector3 jetTruePtUnit( jetTrueMomentum.Px() , jetTrueMomentum.Py() , 0.0 ); jetTruePtUnit.SetMag( 1.0 );
+	TVector3 jetRecoMomentumUnitRotated = jetRecoMomentum; jetRecoMomentumUnitRotated.SetPhi( jetTrueMomentum.Phi() ); jetRecoMomentumUnitRotated.SetMag( 1.0 );
+	TVector3 jetRecoPtUnit( jetRecoMomentum.Px() , jetRecoMomentum.Py() , 0.0 ); jetRecoPtUnit.SetMag( 1.0 );
+	jetThetaResidual = ( jetRecoMomentum.Theta() >= jetTrueMomentum.Theta() ? acos( jetTrueMomentumUnit.Dot( jetRecoMomentumUnitRotated ) ) : -1.0 * acos( jetTrueMomentumUnit.Dot( jetRecoMomentumUnitRotated ) ) );
+	jetPhiResidual = ( jetRecoMomentum.Phi() >= jetTrueMomentum.Phi() ? acos( jetTruePtUnit.Dot( jetRecoPtUnit ) ) : -1.0 * acos( jetTruePtUnit.Dot( jetRecoPtUnit ) ) );
 }
 
-
-void JetErrorAnalysis::getTrackInformation( LCEvent* pLCEvent , EVENT::ReconstructedParticle *testPFO , double &KaonTrackEnergyinJet , double &ProtonTrackEnergyinJet )
+void JetErrorAnalysis::getJetResolutions(	TLorentzVector jetFourMomentum , std::vector<float> jetCovMat , double &sigmaE , double &sigmaTheta , double &sigmaPhi )
 {
-	LCCollection *MarlinTrkTracks{};
-	LCCollection *MarlinTrkTracksKAON{};
-	LCCollection *MarlinTrkTracksPROTON{};
-	try
-	{
-		MarlinTrkTracks = pLCEvent->getCollection(m_MarlinTrkTracks);
-		MarlinTrkTracksKAON = pLCEvent->getCollection(m_MarlinTrkTracksKAON);
-		MarlinTrkTracksPROTON = pLCEvent->getCollection(m_MarlinTrkTracksPROTON);
-	}
-	catch (DataNotAvailableException &e)
-	{
-		streamlog_out(WARNING) << "	Could not find one of  " << MarlinTrkTracks << " / " << MarlinTrkTracksKAON << " / " << MarlinTrkTracksPROTON << " Collection" << std::endl;
-	}
-	const EVENT::TrackVec& inputPFOtrkvec = testPFO->getTracks();
-	int nTRKsofPFO = inputPFOtrkvec.size();
-	TLorentzVector pfoFourMomentum( 0.0 , 0.0 , 0.0 , 0.0 );
-	for ( int i_trk = 0 ; i_trk < nTRKsofPFO ; ++i_trk )
-	{
-		Track *pfoTrk = (Track*)inputPFOtrkvec.at( i_trk );
-		float trackMass = 0.0;
-		TLorentzVector trackFourMomentum( 0.0 , 0.0 , 0.0 , 0.0 );
-		if ( getTrackIndex( MarlinTrkTracksPROTON , pfoTrk ) != -1 )
-		{
-			trackMass = m_proton_mass;
-		}
-		else if ( getTrackIndex( MarlinTrkTracksKAON , pfoTrk ) != -1 )
-		{
-			trackMass = m_kaon_mass;
-		}
-		else
-		{
-			trackMass = m_pion_mass;
-		}//( getTrackIndex( MarlinTrkTracks , pfoTrk ) != -1  )
-		trackFourMomentum = getTrackFourMomentum( pfoTrk , trackMass );
-		if ( trackMass == m_proton_mass )
-		{
-			m_protonTrackEnergy.push_back( trackFourMomentum.E() );
-			m_protonTrackEnergyTotal += trackFourMomentum.E();
-			ProtonTrackEnergyinJet += trackFourMomentum.E();
-		}
-		else if ( trackMass == m_kaon_mass )
-		{
-			m_kaonTrackEnergy.push_back( trackFourMomentum.E() );
-			m_kaonTrackEnergyTotal += trackFourMomentum.E();
-			KaonTrackEnergyinJet += trackFourMomentum.E();
-		}
-		else
-		{
-			m_pionTrackEnergy.push_back( trackFourMomentum.E() );
-			m_pionTrackEnergyTotal += trackFourMomentum.E();
-		}
+	float Px , Py , Pz , P2 , Pt , Pt2;
+	float dTheta_dPx , dTheta_dPy , dTheta_dPz , dPhi_dPx , dPhi_dPy;
+	float sigmaPx2 , sigmaPy2 , sigmaPz2 , sigmaPxPy , sigmaPxPz , sigmaPyPz;
 
-	}
-}
+	Px		= jetFourMomentum.Px();
+	Py		= jetFourMomentum.Py();
+	Pz		= jetFourMomentum.Pz();
+	P2		= ( jetFourMomentum.Vect() ).Mag2();
+	Pt2		= pow( Px , 2 ) + pow( Py , 2 );
+	Pt		= sqrt( Pt2 );
+	sigmaPx2	= jetCovMat[ 0 ];
+	sigmaPxPy	= jetCovMat[ 1 ];
+	sigmaPy2	= jetCovMat[ 2 ];
+	sigmaPxPz	= jetCovMat[ 3 ];
+	sigmaPyPz	= jetCovMat[ 4 ];
+	sigmaPz2	= jetCovMat[ 5 ];
 
-int JetErrorAnalysis::getTrackIndex( EVENT::LCCollection *TrackCollection , EVENT::Track* inputTrk )
-{
-	LCCollection *MarlinTrkTracks{};
-	try
-	{
-		MarlinTrkTracks = TrackCollection;//pLCEvent->getCollection( TrackCollection );
-	}
-	catch (DataNotAvailableException &e)
-	{
-		streamlog_out(WARNING) << "	Could not find the " << TrackCollection << " Collection" << std::endl;
-		return -1;
-	}
-	unsigned int nTRKs = MarlinTrkTracks->getNumberOfElements();
-	int track_index = -1;
-	for (unsigned int i_trk = 0; i_trk < nTRKs;  ++i_trk )
-	{
-		Track* pionTrack = dynamic_cast<EVENT::Track*>( MarlinTrkTracks->getElementAt( i_trk ) );
-		if ( pionTrack == inputTrk )
-		{
-			track_index = i_trk;
-		}
-	}
-	if ( track_index == -1)
-	{
-		streamlog_out(DEBUG1) << "	Coudln't find track_index!!!  " << std::endl;
-	}
-	else
-	{
-		streamlog_out(DEBUG1) << "	Track index in " << m_MarlinTrkTracks << " collection is " << track_index << std::endl;
-	}
-	return track_index;
-}
+	dTheta_dPx	= Px * Pz / ( P2 * Pt );
+	dTheta_dPy	= Py * Pz / ( P2 * Pt );
+	dTheta_dPz	= -Pt / P2;
+	dPhi_dPx	= -Py / Pt2;
+	dPhi_dPy	= Px / Pt2;
 
+	sigmaE		= std::sqrt( jetCovMat[ 9 ] );
+	sigmaTheta	= std::sqrt( std::fabs( std::pow( dTheta_dPx , 2 ) * sigmaPx2 + std::pow( dTheta_dPy , 2 ) * sigmaPy2 + std::pow( dTheta_dPz , 2 ) * sigmaPz2 +
+	 					2.0 * dTheta_dPx * dTheta_dPy * sigmaPxPy + 2.0 * dTheta_dPx * dTheta_dPz * sigmaPxPz + 2.0 * dTheta_dPy * dTheta_dPz * sigmaPyPz ) );
+	sigmaPhi	= std::sqrt( std::fabs( std::pow( dPhi_dPx , 2 ) * sigmaPx2 + std::pow( dPhi_dPy , 2 ) * sigmaPy2 + 2.0 * dPhi_dPx * dPhi_dPy * sigmaPxPy ) );
+	streamlog_out(DEBUG1) << "			E		= " << jetFourMomentum.E() << std::endl ;
+	streamlog_out(DEBUG1) << "			Theta		= " << jetFourMomentum.Theta() << std::endl ;
+	streamlog_out(DEBUG1) << "			Phi		= " << jetFourMomentum.Phi() << std::endl ;
+	streamlog_out(DEBUG1) << "			sigmaE		= " << sigmaE << std::endl ;
+	streamlog_out(DEBUG1) << "			sigmaTheta	= " << sigmaTheta << std::endl ;
+	streamlog_out(DEBUG1) << "			sigmaPhi	= " << sigmaPhi << std::endl ;
 
-TLorentzVector JetErrorAnalysis::getTrackFourMomentum( EVENT::Track* inputTrk , double trackMass )
-{
-	streamlog_out(DEBUG1) << "	------------------------------------------------" << std::endl;
-	streamlog_out(DEBUG1) << "	Calculating PFO 4-momentum from track parameters" << std::endl;
-	streamlog_out(DEBUG1) << "	------------------------------------------------" << std::endl;
-	double Phi = inputTrk->getPhi();
-	double Omega = inputTrk->getOmega();
-	double tanLambda = inputTrk->getTanLambda();
-	streamlog_out(DEBUG0) << "	Track parameters obtained" << std::endl;
-	double pT = eB / fabs( Omega );
-	double px = pT * TMath::Cos( Phi );
-	double py = pT * TMath::Sin( Phi );
-	double pz = pT * tanLambda;
-	double E = sqrt( pow( trackMass , 2 ) + px * px + py * py + pz * pz);
-	streamlog_out(DEBUG0) << "	Track parameters is converted to (p,E)" << std::endl;
-	TLorentzVector trackFourMomentum( px , py , pz , E );
-	return trackFourMomentum;
 }
 
 void JetErrorAnalysis::check()
@@ -667,8 +557,18 @@ void JetErrorAnalysis::check()
 
 }
 
-void JetErrorAnalysis::InitializeHistogram( TH1F *histogram , int scale , int color , int lineWidth , int markerSize , int markerStyle )
+void JetErrorAnalysis::InitializeHistogram( TH1F *histogram , int scale , int color , int lineWidth , int markerSize , int markerStyle , bool fitGaussian )
 {
+/*
+	TPad *pad = new TPad("pad1", "pad1", 0.0 , 0.0 , 1.0 , 1.0 , color , 0 , 0 );
+	pad->SetBottomMargin(0.0175);
+	pad->SetRightMargin(0.02);
+	pad->SetLeftMargin(0.15);
+	pad->SetTopMargin(0.015);
+	pad->Draw();
+	pad->cd();
+*/
+	gStyle->SetStatColor( color );
 	histogram->Scale( 1.0 / scale );
 	histogram->SetLineColor( color );
 	histogram->SetLineWidth( lineWidth );
@@ -678,28 +578,48 @@ void JetErrorAnalysis::InitializeHistogram( TH1F *histogram , int scale , int co
 	float fit_range = 2.0;
 	float fit_min = -2.0;
 	float fit_max = 2.0;
-	doProperGaussianFit( histogram , fit_min , fit_max , fit_range );
-	histogram->GetFunction("gaus")->SetLineColor( color );
+	if ( fitGaussian )
+	{
+		doProperGaussianFit( histogram , fit_min , fit_max , fit_range );
+		histogram->GetFunction("gaus")->SetLineColor( color );
+	}
 	float y_max = 1.2 * histogram->GetMaximum();
-	histogram->GetYaxis()->SetRangeUser(0.0, y_max);
-	histogram->GetXaxis()->SetTitleSize(0.06);
-	histogram->GetXaxis()->SetTitleOffset(1.10);
 	histogram->GetXaxis()->SetLabelSize(0.06);
-	histogram->GetYaxis()->SetTitleSize(0.06);
-	histogram->GetYaxis()->SetTitleOffset(1.30);
-	histogram->GetYaxis()->SetLabelSize(0.06);
+	histogram->GetXaxis()->SetLabelOffset(0.005);
+	histogram->GetXaxis()->SetTitleSize(0.07);
+	histogram->GetXaxis()->SetTitleOffset(1.10);
+	histogram->GetYaxis()->SetRangeUser(0.0, y_max);
+	histogram->GetYaxis()->SetLabelSize(0.05);
+	histogram->GetYaxis()->SetLabelOffset(0.005);
+	histogram->GetYaxis()->SetTitleSize(0.07);
+	histogram->GetYaxis()->SetTitleOffset(1.24);
 	histogram->Write();
-	/*
+
+	TPaveText *ildFullsim = new TPaveText( 0.2 , 0.5 , 0.2 , 0.5 , "tbNDC" );
+	ildFullsim->SetTextSize(0.05);
+	ildFullsim->SetBorderSize(1);
+	ildFullsim->SetTextAlign(13);
+	ildFullsim->SetFillColor(0);
+	ildFullsim->SetTextColor(1);
+	ildFullsim->AddText("ILD full simulation");
+	ildFullsim->Draw("same");
+
 	gPad->Update();
-	TPaveStats *tps = (TPaveStats *)histogram->FindObject("stats");
-	TPaveStats *tps = (TPaveStats *)histogram->FindObject("stats");
-	tps->SetTextColor( color );
-	tps->SetLineColor( color );
-	tps->SetX1NDC( 0.64 );
-	tps->SetX2NDC( 0.94 );
-	tps->SetY1NDC( 0.5 );
-	tps->SetY2NDC( 0.95 );
-*/
+//	TPaveStats *tps = (TPaveStats *)histogram->GetListOfFunctions()->FindObject("stats");
+//	TPaveStats *tps = (TPaveStats *)histogram->FindObject("stats");
+//	tps->SetTextColor( color );
+//	tps->SetLineColor( color );
+//	tps->SetX1NDC( 0.65 );
+//	tps->SetX2NDC( 0.95 );
+//	tps->SetY1NDC( 0.5 );
+//	tps->SetY2NDC( 0.95 );
+
+	gPad->SetRightMargin(0.027);
+	gPad->SetLeftMargin(0.17);
+	gPad->SetTopMargin(0.027);
+	gPad->SetBottomMargin(0.15);
+	gPad->Update();
+
 }
 
 void JetErrorAnalysis::doProperGaussianFit( TH1F *histogram , float fitMin , float fitMax , float fitRange )
@@ -729,18 +649,30 @@ void JetErrorAnalysis::end()
 {
 	m_pTFile->cd();
 	m_pTTree->Write();
-	InitializeHistogram( h_ResidualPx , n_ResidualPx , m_histColour , 1 , 1.0 , 1 );
-	InitializeHistogram( h_ResidualPy , n_ResidualPy , m_histColour , 1 , 1.0 , 1 );
-	InitializeHistogram( h_ResidualPz , n_ResidualPz , m_histColour , 1 , 1.0 , 1 );
-	InitializeHistogram( h_ResidualE , n_ResidualE , m_histColour , 1 , 1.0 , 1 );
-	InitializeHistogram( h_ResidualTheta , n_ResidualTheta , m_histColour , 1 , 1.0 , 1 );
-	InitializeHistogram( h_ResidualPhi , n_ResidualPhi , m_histColour , 1 , 1.0 , 1 );
-	InitializeHistogram( h_NormalizedResidualPx , n_NormalizedResidualPx , m_histColour , 1 , 1.0 , 1 );
-	InitializeHistogram( h_NormalizedResidualPy , n_NormalizedResidualPy , m_histColour , 1 , 1.0 , 1 );
-	InitializeHistogram( h_NormalizedResidualPz , n_NormalizedResidualPz , m_histColour , 1 , 1.0 , 1 );
-	InitializeHistogram( h_NormalizedResidualE , n_NormalizedResidualE , m_histColour , 1 , 1.0 , 1 );
-	InitializeHistogram( h_NormalizedResidualTheta , n_NormalizedResidualTheta , m_histColour , 1 , 1.0 , 1 );
-	InitializeHistogram( h_NormalizedResidualPhi , n_NormalizedResidualPhi , m_histColour , 1 , 1.0 , 1 );
+	InitializeHistogram( h_ResidualPx , h_ResidualPx->GetEntries() , m_histColour , 1 , 1.0 , 1 , false );
+	InitializeHistogram( h_ResidualPy , h_ResidualPy->GetEntries() , m_histColour , 1 , 1.0 , 1 , false );
+	InitializeHistogram( h_ResidualPz , h_ResidualPz->GetEntries() , m_histColour , 1 , 1.0 , 1 , false );
+	InitializeHistogram( h_ResidualE , h_ResidualE->GetEntries() , m_histColour , 1 , 1.0 , 1 , false );
+	InitializeHistogram( h_ResidualTheta , h_ResidualTheta->GetEntries() , m_histColour , 1 , 1.0 , 1 , false );
+	InitializeHistogram( h_ResidualPhi , h_ResidualPhi->GetEntries() , m_histColour , 1 , 1.0 , 1 , false );
+	InitializeHistogram( h_NormalizedResidualPx , h_NormalizedResidualPx->GetEntries() , m_histColour , 1 , 1.0 , 1 , true );
+	InitializeHistogram( h_NormalizedResidualPy , h_NormalizedResidualPy->GetEntries() , m_histColour , 1 , 1.0 , 1 , true );
+	InitializeHistogram( h_NormalizedResidualPz , h_NormalizedResidualPz->GetEntries() , m_histColour , 1 , 1.0 , 1 , true );
+	InitializeHistogram( h_NormalizedResidualE , h_NormalizedResidualE->GetEntries() , m_histColour , 1 , 1.0 , 1 , true );
+	InitializeHistogram( h_NormalizedResidualTheta , h_NormalizedResidualTheta->GetEntries() , m_histColour , 1 , 1.0 , 1 , true );
+	InitializeHistogram( h_NormalizedResidualPhi , h_NormalizedResidualPhi->GetEntries() , m_histColour , 1 , 1.0 , 1 , true );
+	InitializeHistogram( h_ResidualPxSeen , h_ResidualPxSeen->GetEntries() , m_histColour , 1 , 1.0 , 1 , false );
+	InitializeHistogram( h_ResidualPySeen , h_ResidualPySeen->GetEntries() , m_histColour , 1 , 1.0 , 1 , false );
+	InitializeHistogram( h_ResidualPzSeen , h_ResidualPzSeen->GetEntries() , m_histColour , 1 , 1.0 , 1 , false );
+	InitializeHistogram( h_ResidualESeen , h_ResidualESeen->GetEntries() , m_histColour , 1 , 1.0 , 1 , false );
+	InitializeHistogram( h_ResidualThetaSeen , h_ResidualThetaSeen->GetEntries() , m_histColour , 1 , 1.0 , 1 , false );
+	InitializeHistogram( h_ResidualPhiSeen , h_ResidualPhiSeen->GetEntries() , m_histColour , 1 , 1.0 , 1 , false );
+	InitializeHistogram( h_NormalizedResidualPxSeen , h_NormalizedResidualPxSeen->GetEntries() , m_histColour , 1 , 1.0 , 1 , true );
+	InitializeHistogram( h_NormalizedResidualPySeen , h_NormalizedResidualPySeen->GetEntries() , m_histColour , 1 , 1.0 , 1 , true );
+	InitializeHistogram( h_NormalizedResidualPzSeen , h_NormalizedResidualPzSeen->GetEntries() , m_histColour , 1 , 1.0 , 1 , true );
+	InitializeHistogram( h_NormalizedResidualESeen , h_NormalizedResidualESeen->GetEntries() , m_histColour , 1 , 1.0 , 1 , true );
+	InitializeHistogram( h_NormalizedResidualThetaSeen , h_NormalizedResidualThetaSeen->GetEntries() , m_histColour , 1 , 1.0 , 1 , true );
+	InitializeHistogram( h_NormalizedResidualPhiSeen , h_NormalizedResidualPhiSeen->GetEntries() , m_histColour , 1 , 1.0 , 1 , true );
 	m_pTFile->Close();
 	delete m_pTFile;
 
