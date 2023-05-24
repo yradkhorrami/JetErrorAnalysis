@@ -313,6 +313,8 @@ with overlay
 		<parameter name="HistogramsName" type="string"> ${histName} </parameter>
 		<!-- colour code of Histograms -->
 		<parameter name="HistogramsColour" type="int"> ${histColor} </parameter>
+		<!--Whether create root file for new pfo collection or not true:create / false: do not create-->
+		<parameter name="fillRootTree" type="bool">true</parameter>
 		<!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
 		<parameter name="Verbosity" type="string">${Verbosity}</parameter>
 	</processor>
