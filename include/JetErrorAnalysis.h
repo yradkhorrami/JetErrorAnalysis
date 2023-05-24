@@ -75,7 +75,7 @@ class JetErrorAnalysis : public Processor , public TrueJet_Parser
 		virtual void	getJetResolutions( TLorentzVector jetFourMomentum , std::vector<float> jetCovMat , double &sigmaE , double &sigmaTheta , double &sigmaPhi );
 
 
-		virtual void InitializeHistogram( TH1F *histogram , int scale , int color , int lineWidth , int markerSize , int markerStyle , bool fitGaussian );
+		virtual void InitializeHistogram( TH1F *histogram , bool scale , int color , int lineWidth , int markerSize , int markerStyle , bool fitGaussian );
 		virtual void doProperGaussianFit( TH1F *histogram , float fitMin , float fitMax , float fitRange );
 
 
@@ -208,7 +208,9 @@ class JetErrorAnalysis : public Processor , public TrueJet_Parser
 //		std::string				_trueJetCollectionName{};
 		std::string				m_outputFile{};
 		std::string				m_histName{};
-		int					m_histColour{};
+		int						m_histColour{};
+		bool					m_fillRootTree = true;
+		bool					m_normalizeHistograms = true;
 		float					m_minKaonTrackEnergy{};
 		float					m_minProtonTrackEnergy{};
 		TFile					*m_pTFile;
