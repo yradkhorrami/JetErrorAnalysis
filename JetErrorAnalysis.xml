@@ -1,0 +1,374 @@
+<?xml version="1.0" encoding="us-ascii"?>
+<!--##########################################
+    #                                        #
+    #     Example steering file for marlin   #
+    #     Run TrueJet, output to DST         #
+    #                                        #
+    ##########################################-->
+
+<marlin xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://ilcsoft.desy.de/marlin/marlin.xsd">
+
+	<constants>
+		<constant name="lcgeo_DIR" value="/cvmfs/ilc.desy.de/sw/x86_64_gcc82_centos7/v02-02-03/lcgeo/v00-16-07" />
+		<constant name="DetectorModel" value="ILD_l5_o1_v02" />
+		<constant name="CompactFile" value="${lcgeo_DIR}/ILD/compact/${DetectorModel}/${DetectorModel}.xml" />
+		<constant name="OutputDirectory" value="/afs/desy.de/group/flc/pool/radkhory/JetErrorAnalysis/output/Thesis" />
+		<constant name="OutputBaseName_iter" value="0" />
+		<constant name="histName" value="fullErrorFlow" />
+		<constant name="histColor" value="2" />
+		<constant name="createRootTree" value="false" />
+		<constant name="OutputBaseName" value="ZHe2e2bb_woOverlay" />
+		<constant name="OutputRootFile" value="${OutputBaseName}.root" />
+		<constant name="Verbosity" value="MESSAGE"/>
+		<constant name="MCparticleCollectionName" value="MCParticlesSkimmed"/>
+	</constants>
+
+	<execute>
+		<processor name="InitDD4hep" condition="" />
+		<processor name="mytruejet"/>
+		<processor name="MyChargedPFOCorrection" condition="" />
+		<processor name="MyAddNeutralPFOCovMat" condition="" />
+		<processor name="MyIsolatedLeptonTaggingProcessor"/>
+		<processor name="MyFastJetProcessor"/>
+		<processor name="MyZHEvents"/>
+		<if condition="MyZHEvents.leptonicDecayMode">
+			<if condition="MyZHEvents.ZHDecayMode">
+				<processor name="MyErrorFlow" condition="" />
+				<processor name="myJetErrorAnalysis"/>
+			</if>
+		</if>
+		<!--processor name="MyFastJetProcessor_Overlay"/-->
+	</execute>
+
+	<global>
+		<!--parameter name="LCIOInputFiles">/nfs/dust/ilc/user/radkhory/PhysicsAnalysis/Hmumu/DST/rv02-02.sv02-02.mILD_l5_o1_v02.E250-SetA.I402003.Pe2e2h.eL.pR.slcio</parameter-->
+		<parameter name="LCIOInputFiles">/nfs/dust/ilc/user/radkhory/PhysicsAnalysis/Hmumu/DST/rv02-01-02.sv02-01-02.mILD_l5_o1_v02_nobg.E250-SetA.I401010.Pe2e2h.eL.pR.n000.d_dstm_14763.slcio</parameter>
+		<!--parameter name="LCIOInputFiles">/nfs/dust/ilc/user/jtorndal/sgv_test/runningZHH/fold_E500-TDR_ws.Pe2e2hh.Gwhizard-2_8_5.eL.pR.I403001.0.slcio/sgvout.slcio</parameter-->
+<!--
+without overlay
+		/nfs/dust/ilc/user/radkhory/PhysicsAnalysis/Hmumu/DST/rv02-01-02.sv02-01-02.mILD_l5_o1_v02_nobg.E250-SetA.I401010.Pe2e2h.eL.pR.n000.d_dstm_14763.slcio
+-->
+<!--
+with overlay
+		/nfs/dust/ilc/user/radkhory/PhysicsAnalysis/Hmumu/DST/rv02-02.sv02-02.mILD_l5_o1_v02.E250-SetA.I402003.Pe2e2h.eL.pR.slcio
+		/nfs/dust/ilc/user/radkhory/PhysicsAnalysis/Hmumu/DST/rv02-02.sv02-02.mILD_l5_o1_v02.E250-SetA.I402004.Pe2e2h.eR.pL.slcio
+-->
+		<!-- limit the number of processed records (run+evt): -->
+		<parameter name="MaxRecordNumber" value="0" />
+		<parameter name="SkipNEvents" value="0" />
+		<parameter name="SupressCheck" value="false" />
+		<parameter name="GearXMLFile"> /cvmfs/ilc.desy.de/sw/ILDConfig/v02-02-03/StandardConfig/production/Gear/gear_ILD_l5_v02.xml </parameter>
+		<parameter name="Verbosity" options="DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT"> DEBUG  </parameter>
+		<parameter name="RandomSeed" value="1234567890" />
+		<parameter name="OutputSteeringFile" value="${OutputDirectory}/JetErrorAnalysis_Parsed.xml"/>
+		<parameter name="AllowToModifyEvent" value="true" />
+		<!-- optionally limit the collections that are read from the input file: -->
+		<!--parameter name="LCIOReadCollectionNames">MCParticle PandoraPFOs</parameter-->
+	</global>
+
+	<processor name="InitDD4hep" type="InitializeDD4hep">
+		<!--InitializeDD4hep reads a compact xml file and initializes the DD4hep::LCDD object-->
+		<!--Name of the DD4hep compact xml file to load-->
+		<parameter name="DD4hepXMLFile" type="string">${CompactFile}</parameter>
+	</processor>
+
+	<processor name="mytruejet" type="TrueJet">
+		<!-- These are the defaults, probably exactly what you need.-->
+		<parameter name="MCParticleCollection" type="string" lcioInType="MCParticle">MCParticlesSkimmed</parameter>
+		<parameter name="RecoParticleCollection" type="string"  lcioInType="ReconstructedParticle">PandoraPFOs</parameter>
+		<parameter name="RecoMCTruthLinkName" type="string" lcioInType="LCRelation"> RecoMCTruthLink </parameter>
+		<parameter name="TrueJets" type="string"  lcioOutType="ReconstructedParticle">TrueJets</parameter>
+		<parameter name="FinalColourNeutrals" type="string"  lcioOutType="ReconstructedParticle">FinalColourNeutrals</parameter>
+		<parameter name="InitialColourNeutrals" type="string"  lcioOutType="ReconstructedParticle">InitialColourNeutrals</parameter>
+		<parameter name="TrueJetPFOLink" type="string" lcioOutType="LCRelation"> TrueJetPFOLink </parameter>
+		<parameter name="TrueJetMCParticleLink" type="string" lcioOutType="LCRelation">TrueJetMCParticleLink </parameter>
+		<parameter name="FinalElementonLink" type="string" lcioOutType="LCRelation">FinalElementonLink</parameter>
+		<parameter name="InitialElementonLink" type="string" lcioOutType="LCRelation">InitialElementonLink</parameter>
+		<parameter name="FinalColourNeutralLink" type="string" lcioOutType="LCRelation">FinalColourNeutralLink</parameter>
+		<parameter name="InitialColourNeutralLink" type="string" lcioOutType="LCRelation">InitialColourNeutralLink</parameter>
+		<parameter name="Verbosity" type="string">DEBUG</parameter>
+	</processor>
+
+	<processor name="MyChargedPFOCorrection" type="ChargedPFOCorrection">
+		<!--Name of the Input PFO Collection-->
+		<parameter name="PfoCollection" type="string" lcioInType="RECONSTRUCTEDPARTICLE">PandoraPFOs</parameter>
+		<!--Name of the Input Track Collection-->
+		<parameter name="MarlinTrkTracksCollection" type="string" lcioInType="TRACK">MarlinTrkTracks</parameter>
+		<!--Name of the Input Track Collection for Kaons-->
+		<parameter name="MarlinTrkTracksCollectionKaon" type="string" lcioInType="TRACK">MarlinTrkTracksKaon</parameter>
+		<!--Name of the Input Track Collection for Protons-->
+		<parameter name="MarlinTrkTracksCollectionProton" type="string" lcioInType="TRACK">MarlinTrkTracksProton</parameter>
+		<!--Name of the MCTruthMarlinTrkTracksLink Collection-->
+		<parameter name="MCTruthTrackLinkCollection" type="string" lcioInType="LCRelation">MCTruthMarlinTrkTracksLink</parameter>
+		<!--Name of the MarlinTrkTracksMCTruthLink Collection-->
+		<parameter name="TrackMCTruthLinkCollection" type="string" lcioInType="LCRelation">MarlinTrkTracksMCTruthLink</parameter>
+		<!--Names of the Output PFO collection-->
+		<parameter name="updatedPfoCollection" type="string" lcioOutType="RECONSTRUCTEDPARTICLE">PandoraPFOs_updatedChargedPFOs</parameter>
+		<!--Update PFOs? true update PFO collection , false: make new PFO collection-->
+	        <parameter name="updatePFOs" type="bool">true</parameter>
+		<!--Update PFOs with One Track in new collection or not true:update / false: no-update-->
+	        <parameter name="updatePFOwithOneTrack" type="bool">true</parameter>
+		<!--Update PFOs with Two Tracks in new collection or not true:update / false: no-update-->
+	        <parameter name="updatePFOwithTwoTrack" type="bool">true</parameter>
+		<!--Scenario for chossing main track in Charged PFOs with two track: 1: track with lowest 3D radius of inner most hit , 2: track with lowset 3D impaxt parameter , 3: track with lowest 3D radius of first most hit-->
+		<parameter name="mainTrackSelectionScenario" type="int">3</parameter>
+		<!--Update PFOs with More than Two Tracks in new collection or not true:update / false: no-update-->
+	        <parameter name="updatePFOwithMoreTrack" type="bool">true</parameter>
+		<!--Update PFOs with Pion Tracks in new collection or not true:update / false: no-update-->
+	        <parameter name="updatePFOwithPionTrack" type="bool">false</parameter>
+	        <!--Whether create root file for new pfo collection or not true:create / false: do not create-->
+	        <parameter name="MinWeightTrackMCTruthLink" type="float">0.50</parameter>
+		<!--Minimum acceptable weight for MCParticle -> Track Link-->
+	        <parameter name="MinWeightMCTruthTrackLink" type="float">0.50</parameter>
+		<!--Pion mass for calculating (p,E) and CovMat from track parameters-->
+	        <parameter name="PionMass" type="float">0.13957018</parameter>
+		<!--Proton mass for calculating (p,E) and CovMat from track parameters-->
+	        <parameter name="ProtonMass" type="float">0.938272088</parameter>
+		<!--Kaon mass for calculating (p,E) and CovMat from track parameters-->
+	        <parameter name="KaonMass" type="float">0.493677</parameter>
+		<!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+		<parameter name="Verbosity" type="string">${Verbosity}</parameter>
+	</processor>
+
+	<processor name="MyAddNeutralPFOCovMat" type="AddNeutralPFOCovMat">
+		<!--Name of the Input PFO Collection-->
+		<parameter name="inputPfoCollection" type="string" lcioInType="RECONSTRUCTEDPARTICLE">PandoraPFOs</parameter>
+		<!--Names of the Output PFO collection-->
+		<parameter name="outputPfoCollection" type="string" lcioOutType="RECONSTRUCTEDPARTICLE">PandoraPFO_updatedNeutralPFOs</parameter>
+		<!--true: Neutral PFOs are taken massive, false: Neutral PFOs are taken massless-->
+		<parameter name="AssumeNeutralPFOMassive" type="bool">true</parameter>
+		<!--true: the cluster energy is interpreted as kinetic energy of PFO, false: the cluster energy is interpreted as momentum magnitude of PFO-->
+		<parameter name="isClusterEnergyKinEnergy" type="bool">false</parameter>
+		<!--true: Update 4-momentum of PFOs, false: set 4-momentum for PFOs same as input PFO-->
+		<parameter name="updatePFO4Momentum" type="bool">false</parameter>
+		<!--true: Use (mathematically) true Jacobian for the option E_cluster = |p|, false: for the option E_cluster = |p|, Use the same jacobian as the option E_cluster = E_kinetic-->
+		<parameter name="useTrueJacobian" type="bool">false</parameter>
+		<!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+		<parameter name="Verbosity" type="string">MESSAGE</parameter>
+	</processor>
+
+	<processor name="MyIsolatedLeptonTaggingProcessor" type="IsolatedLeptonTaggingProcessor">
+		<!--IsolatedLeptonTaggingProcessor does whatever it does ...-->
+		<!--cosine of the larger cone-->
+		<parameter name="CosConeLarge" type="float">0.95 </parameter>
+		<!--cosine of the smaller cone-->
+		<parameter name="CosConeSmall" type="float">0.98 </parameter>
+		<!--Cut on the mva output of isolated electron selection-->
+		<parameter name="CutOnTheISOElectronMVA" type="float">2.0 </parameter>
+		<!--Cut on the mva output of isolated muon selection-->
+		<parameter name="CutOnTheISOMuonMVA" type="float">0.7 </parameter>
+		<!--Directory of Weights for the Isolated Electron MVA Classification-->
+		<parameter name="DirOfISOElectronWeights" type="string">/cvmfs/ilc.desy.de/sw/x86_64_gcc82_centos7/v02-02-03/MarlinReco/v01-32/Analysis/IsolatedLeptonTagging/example/isolated_electron_weights </parameter>
+		<!--Directory of Weights for the Isolated Muon MVA Classification-->
+		<parameter name="DirOfISOMuonWeights" type="string">/cvmfs/ilc.desy.de/sw/x86_64_gcc82_centos7/v02-02-03/MarlinReco/v01-32/Analysis/IsolatedLeptonTagging/example/isolated_muon_weights_woYoke </parameter>
+		<!--Name of the PandoraPFOs collection-->
+		<parameter name="InputPandoraPFOsCollection" type="string" lcioInType="ReconstructedParticle">PandoraPFOs </parameter>
+		<!--Name of the Primary Vertex collection-->
+		<parameter name="InputPrimaryVertexCollection" type="string" lcioInType="ReconstructedParticle">PrimaryVertex </parameter>
+		<!--flag to select one most like isolated lepton-->
+		<parameter name="IsSelectingOneIsoLep" type="bool">false </parameter>
+		<!--Maximum d0 significance for electron-->
+		<parameter name="MaxD0SigForElectron" type="float">50 </parameter>
+		<!--Maximum D0 significance for muon-->
+		<parameter name="MaxD0SigForMuon" type="float">20 </parameter>
+		<!--Maximum ratio of energy in calorimeters over momentum for electron-->
+		<parameter name="MaxEOverPForElectron" type="float">1.3 </parameter>
+		<!--Maximum ratio of energy in calorimeters over momentum for muon-->
+		<parameter name="MaxEOverPForMuon" type="float">0.3 </parameter>
+		<!--Maximum Z0 significance for electron-->
+		<parameter name="MaxZ0SigForElectron" type="float">50 </parameter>
+		<!--Maximum Z0 significance for muon-->
+		<parameter name="MaxZ0SigForMuon" type="float">20 </parameter>
+		<!--minimum ratio of energy in calorimeters over momentum for electron-->
+		<parameter name="MinEOverPForElectron" type="float">0.5 </parameter>
+		<!--minimum ratio of energy in ecal over energy in ecal+hcal-->
+		<parameter name="MinEecalOverTotEForElectron" type="float">0.9 </parameter>
+		<!--Minimum energy in yoke for electron-->
+		<parameter name="MinEyokeForMuon" type="float">1.2 </parameter>
+		<!--Minimum momentum for electron-->
+		<parameter name="MinPForElectron" type="float">5 </parameter>
+		<!--Minimum momentum for muon-->
+		<parameter name="MinPForMuon" type="float">5 </parameter>
+		<!--Name of collection with the selected isolated lepton-->
+		<parameter name="OutputIsoLeptonsCollection" type="string" lcioOutType="ReconstructedParticle">ISOLeptons </parameter>
+		<!--Name of the new PFOs collection without isolated lepton-->
+		<parameter name="OutputPFOsWithoutIsoLepCollection" type="string" lcioOutType="ReconstructedParticle">PandoraPFOsWithoutIsoLep </parameter>
+		<!--use yoke for muon ID-->
+		<parameter name="UseYokeForMuonID" type="bool">false </parameter>
+		<!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+		<parameter name="Verbosity" type="string">MESSAGE </parameter>
+	</processor>
+
+	<processor name="MyFastJetProcessor" type="FastJetProcessor">
+		<!--Using the FastJet library to identify jets-->
+		<!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+		<parameter name="Verbosity" type="string">MESSAGE </parameter>
+		<!--Selects the algorithm and its parameters. E.g. 'kt_algorithm 0.7' or 'ee_kt_algorithm'. For a full list of supported algorithms, see the logfile after execution.-->
+		<parameter name="algorithm" type="StringVec">ee_kt_algorithm</parameter>
+		<!--One of 'Inclusive <minPt>',_Nu 'InclusiveIterativeNJets <nrJets> <minE>', 'ExclusiveNJets <nrJets>', 'ExclusiveYCut <yCut>'. Note: not all modes are available for all algorithms.-->
+		<parameter name="clusteringMode" type="StringVec">ExclusiveNJets 2 </parameter>
+		<!--The identified jets-->
+		<parameter name="jetOut" type="string" lcioOutType="ReconstructedParticle">Durham_2Jets </parameter>
+		<!--a list of all reconstructed particles we are searching for jets in.-->
+		<parameter name="recParticleIn" type="string" lcioInType="ReconstructedParticle">PandoraPFOsWithoutIsoLep </parameter>
+		<!--a list of all reconstructed particles we are storing for jets in.-->
+		<parameter name="recParticleOut" type="string" lcioOutType="ReconstructedParticle">Durham_2JetsPFOs </parameter>
+		<!--The recombination scheme used when merging 2 particles. Usually there is no need to use anything else than 4-Vector addition: E_scheme-->
+		<parameter name="recombinationScheme" type="string">E_scheme </parameter>
+		<!--Store the list of particles that were clustered into jets in the recParticleOut collection-->
+		<parameter name="storeParticlesInJets" type="bool">true </parameter>
+		<!--Number of identified jets-->
+		<parameter name="findNrJets"> 2 </parameter>
+		<!--Prefix of identified jets-->
+		<parameter name="findNrJetsCollectionPrefix"> Jets_ </parameter>
+	</processor>
+
+	<processor name="MyZHEvents" type="ZHEvents">
+		<!--Name of the Input MCParticle Collection-->
+		<parameter name="MCParticleCollection" type="string" lcioInType="MCParticle">${MCparticleCollectionName}</parameter>
+		<!--Name of the Input isolated lepton collection-->
+		<parameter name="isoLepCollection" type="string" lcioInType="ReconstructedParticle">ISOLeptons </parameter>
+		<!--Name of the Input Jet Collection-->
+		<parameter name="JetCollection" type="string" lcioInType="RECONSTRUCTEDPARTICLE">Durham_2Jets</parameter>
+		<!--look for this number of jets-->
+		<parameter name="nJets" type="int">2 </parameter>
+		<!--look for this number of isolated leptons-->
+		<parameter name="nIsoLeps" type="int">2 </parameter>
+		<!--Cheat decay mode of boson fromMCTruth or use flavour-likeness / PFOType-->
+	        <parameter name="cheatDecayMode" type="bool">true</parameter>
+		<!--Should include events with b-jets for being processed? YES: true , NO: false-->
+	        <parameter name="includ_bb" type="bool">true</parameter>
+		<!--Should include events with c-jets for being processed? YES: true , NO: false-->
+	        <parameter name="includ_cc" type="bool">false</parameter>
+		<!--Should include events with s-jets for being processed? YES: true , NO: false-->
+	        <parameter name="includ_ss" type="bool">false</parameter>
+		<!--Should include events with u-jets for being processed? YES: true , NO: false-->
+	        <parameter name="includ_uu" type="bool">false</parameter>
+		<!--Should include events with d-jets for being processed? YES: true , NO: false-->
+	        <parameter name="includ_dd" type="bool">false</parameter>
+		<!--Should include events with g-jets for being processed? YES: true , NO: false-->
+	        <parameter name="includ_gg" type="bool">false</parameter>
+		<!--Include Z/H->e+e- events for being processed? YES: true , NO: false-->
+	        <parameter name="includ_ee" type="bool">false</parameter>
+		<!--Include Z/H->mu+mu- events for being processed? YES: true , NO: false-->
+	        <parameter name="includ_mumu" type="bool">false</parameter>
+		<!--Include Z/H->tau+tau- events for being processed? YES: true , NO: false-->
+	        <parameter name="includ_tautau" type="bool">false</parameter>
+		<!--Include Z/H->nu1nu1 events for being processed? YES: true , NO: false-->
+	        <parameter name="includ_nu1nu1" type="bool">false</parameter>
+		<!--Include Z/H->nu2nu2 events for being processed? YES: true , NO: false-->
+	        <parameter name="includ_nu2nu2" type="bool">false</parameter>
+		<!--Include Z/H->nu3nu3 events for being processed? YES: true , NO: false-->
+	        <parameter name="includ_nu3nu3" type="bool">false</parameter>
+		<!--Include Z/H->GammaGamma events for being processed? YES: true , NO: false-->
+	        <parameter name="includ_gammagamma" type="bool">false</parameter>
+		<!--Include Z/H->W+W- events for being processed? YES: true , NO: false-->
+	        <parameter name="includ_WW" type="bool">false</parameter>
+		<!--Include Z/H->ZZ events for being processed? YES: true , NO: false-->
+	        <parameter name="includ_ZZ" type="bool">false</parameter>
+		<!--Include Z/H->HH events for being processed? YES: true , NO: false-->
+	        <parameter name="includ_HH" type="bool">false</parameter>
+		<!--Include Z/H->Other events for being processed? YES: true , NO: false-->
+	        <parameter name="includ_other" type="bool">false</parameter>
+		<!--Include Z->e+e- events for being processed? YES: true , NO: false-->
+	        <parameter name="includZee" type="bool">false</parameter>
+		<!--Include Z->mu+mu- events for being processed? YES: true , NO: false-->
+	        <parameter name="includZmumu" type="bool">true</parameter>
+		<!--Include Z->tau+tau- events for being processed? YES: true , NO: false-->
+	        <parameter name="includZtautau" type="bool">false</parameter>
+		<!--Whether create root file for new pfo collection or not true:create / false: do not create-->
+	        <parameter name="fillRootTree" type="bool">${createRootTree}</parameter>
+		<!--Name of the output root file-->
+	        <parameter name="RootFile" type="string">${OutputDirectory}/${OutputBaseName}_EventSelection.root</parameter>
+		<!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+		<parameter name="Verbosity" type="string">${Verbosity}</parameter>
+	</processor>
+
+	<processor name="MyErrorFlow" type="ErrorFlow">
+		<!--PfoAnalysis analyses output of PandoraPFANew-->
+		<!--Names of input pfo collection-->
+		<parameter name="InputPFOCollection" type="string" lcioInType="ReconstructedParticle">Durham_2Jets </parameter>
+		<!--Names of output collection-->
+		<parameter name="OutputPFOCollection" type="string" lcioOutType="ReconstructedParticle">OutputErrorFlowJets </parameter>
+		<!--whether use full CovMat for neutral PFOs or use only energy uncertainty-->
+		<parameter name="useFullCovMatforNeutrals" type="bool">true </parameter>
+		<!--Enable/disable confusion term to be added to covariance matrix-->
+		<parameter name="EnableConfusionTerm" type="bool">true </parameter>
+		<!--Enable/disable Propagating uncertainty due to confusion to the Momentum components-->
+		<parameter name="PropagateConfusion2Mom" type="bool">true </parameter>
+		<!-- A correction factor to be multiplied to angular uncertainties of Photons -->
+		<parameter name="CovMatFactorPhotons" type="double"> 1.3 </parameter>
+		<!-- A correction factor to be multiplied to angular uncertainties of Neutral Hadrons -->
+		<parameter name="CovMatFactorNeutralHadrons" type="double"> 1.8 </parameter>
+		<!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+		<parameter name="Verbosity" type="string">MESSAGE </parameter>
+	</processor>
+
+	<processor name="myJetErrorAnalysis" type="JetErrorAnalysis">
+		<!--Name of the input reconstructed Jet collection-->
+		<parameter name="RecoJetCollection" type="string" lcioInType="ReconstructedParticle">OutputErrorFlowJets </parameter>
+		<!-- name of Output root file -->
+		<parameter name="outputFilename" type="string"> ${OutputDirectory}/${OutputBaseName}_JetErrorAnalysis.root </parameter>
+		<!-- name of Histograms -->
+		<parameter name="HistogramsName" type="string"> ${histName} </parameter>
+		<!-- colour code of Histograms -->
+		<parameter name="HistogramsColour" type="int"> ${histColor} </parameter>
+		<!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
+		<parameter name="Verbosity" type="string">${Verbosity}</parameter>
+	</processor>
+
+	<processor name="DSTOutput" type="LCIOOutputProcessor">
+		<!--
+			DST output: drop all hits, skim MCParticles and keep final Tracks, Clusters and  ReconstructedParticles
+			TO DO:  add LCFI flavour tag stuff
+		-->
+		<parameter name="LCIOOutputFile" type="string" >${OutputDirectory}/${OutputBaseName}.slcio</parameter>
+		<parameter name="DropCollectionTypes" type="StringVec">
+			MCParticle
+			LCRelation
+			SimTrackerHit
+			SimCalorimeterHit
+			TrackerHit
+			CalorimeterHit
+			LCFloatVec
+			LCGenericObject
+			TrackerHitPlane
+		</parameter>
+		<parameter name="FullSubsetCollections" type="StringVec" value="MCParticlesSkimmed2"/>
+		<parameter name="KeepCollectionNames" type="StringVec">
+			MCParticlesSkimmed
+			RecoMCTruthLink
+			MCTruthRecoLink
+			TrackMCTruthLink
+			MCTruthTrackLink
+			ClusterMCTruthLink
+			MCTruthClusterLink
+			MarlinTrkTracks
+			PandoraPFOs
+			PandoraClusters
+			BuildUpVertex
+			BuildUpVertex_RP
+			BuildUpVertex_V0
+			BuildUpVertex_V0_RP
+			PrimaryVertex
+			PrimaryVertex_RP
+			TrueJetPFOLink
+			TrueJetMCParticleLink
+			TrueJets
+			FinalElementonLink
+			InitialElementonLink
+			FinalColourNeutralLink
+			InitialColourNeutralLink
+			FinalColourNeutrals
+			InitialColourNeutrals
+			OutputErrorFlowPFOsminusoverlayJets
+			PFOsminusoverlay
+			Durham_2JetsPFOs
+			OutputErrorFlowJets
+			Durham_2Jets
+		</parameter>
+		<parameter name="LCIOWriteMode" type="string" value="WRITE_NEW"/>
+		<!--parameter name="SplitFileSizekB" type="int" value="1992294"/-->
+	</processor>
+
+</marlin>
