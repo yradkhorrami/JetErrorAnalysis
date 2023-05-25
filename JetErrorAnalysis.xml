@@ -12,7 +12,7 @@
 		<constant name="lcgeo_DIR" value="/cvmfs/ilc.desy.de/sw/x86_64_gcc82_centos7/v02-02-03/lcgeo/v00-16-07" />
 		<constant name="DetectorModel" value="ILD_l5_o1_v02" />
 		<constant name="CompactFile" value="${lcgeo_DIR}/ILD/compact/${DetectorModel}/${DetectorModel}.xml" />
-		<constant name="OutputDirectory" value="/afs/desy.de/group/flc/pool/radkhory/JetErrorAnalysis/output/Thesis" />
+		<constant name="OutputDirectory" value="/afs/desy.de/group/flc/pool/radkhory/PhysicsAnalysis/JetErrorAnalysis" />
 		<constant name="OutputBaseName_iter" value="0" />
 		<constant name="histName" value="fullErrorFlow" />
 		<constant name="histColor" value="2" />
@@ -307,6 +307,8 @@ with overlay
 	<processor name="myJetErrorAnalysis" type="JetErrorAnalysis">
 		<!--Name of the input reconstructed Jet collection-->
 		<parameter name="RecoJetCollection" type="string" lcioInType="ReconstructedParticle">OutputErrorFlowJets </parameter>
+		<!-- method for matching TRUE-RECO jets: [1] finding leading particle of reco jet in true jets, [2] direction of jets -->
+		<parameter name="jetMatchingMethod" type="int"> 2 </parameter>
 		<!-- name of Output root file -->
 		<parameter name="outputFilename" type="string"> ${OutputDirectory}/${OutputBaseName}_JetErrorAnalysis.root </parameter>
 		<!-- name of Histograms -->

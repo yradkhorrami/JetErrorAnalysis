@@ -205,6 +205,7 @@ class JetErrorAnalysis : public Processor , public TrueJet_Parser
 		std::string				_MCParticleColllectionName{};
 		std::string				_recoParticleCollectionName{};
 		std::string				_recoMCTruthLink{};
+		int						m_jetMatchingMethod{};
 //		std::string				_trueJetCollectionName{};
 		std::string				m_outputFile{};
 		std::string				m_histName{};

@@ -54,6 +54,12 @@ m_pTTree(NULL)
 					std::string("Durham_nJets")
 				);
 
+	registerProcessorParameter(	"jetMatchingMethod",
+					"method for matching TRUE-RECO jets: [1] finding leading particle of reco jet in true jets, [2] direction of jets",
+					m_jetMatchingMethod,
+					int(1)
+				);
+
 	registerProcessorParameter(	"outputFilename",
 					"name of output file",
 					m_outputFile,
@@ -370,18 +376,22 @@ void JetErrorAnalysis::processEvent( LCEvent* pLCEvent)
 
 		m_nRecoJets = recoJetCol->getNumberOfElements();
 		streamlog_out(DEBUG8) << "	Number of Reconstructed Jets: " << m_nRecoJets << std::endl;
+		streamlog_out(DEBUG8) << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
 
 		int njets = trueJet->njets();
 		streamlog_out(DEBUG8) << "	Number of True Jets: " << njets << std::endl;
 		for ( int i_trueJet = 0 ; i_trueJet < njets ; ++i_trueJet )
 		{
 			streamlog_out(DEBUG7) << "Type of trueJet[ " << i_trueJet << " ] = " << type_jet( i_trueJet ) << std::endl;
+			streamlog_out(DEBUG4) << "		initial_element (Px,Py,Pz,E):	" << initial_elementon( i_trueJet )->getMomentum()[ 0 ] << " , " << initial_elementon( i_trueJet )->getMomentum()[ 1 ] << " , " << initial_elementon( i_trueJet )->getMomentum()[ 2 ] << " , " << initial_elementon( i_trueJet )->getEnergy() << std::endl;
+			streamlog_out(DEBUG4) << "		final_element (Px,Py,Pz,E):	" << final_elementon( i_trueJet )->getMomentum()[ 0 ] << " , " << final_elementon( i_trueJet )->getMomentum()[ 1 ] << " , " << final_elementon( i_trueJet )->getMomentum()[ 2 ] << " , " << final_elementon( i_trueJet )->getEnergy() << std::endl;
 			streamlog_out(DEBUG4) << "		Quark (Px,Py,Pz,E):		" << pquark( i_trueJet )[ 0 ] << " , " << pquark( i_trueJet )[ 1 ] << " , " << pquark( i_trueJet )[ 2 ] << " , " << Equark( i_trueJet ) << std::endl;
 			streamlog_out(DEBUG4) << "		trueJet (Px,Py,Pz,E):		" << ptrue( i_trueJet )[ 0 ] << " , " << ptrue( i_trueJet )[ 1 ] << " , " << ptrue( i_trueJet )[ 2 ] << " , " << Etrue( i_trueJet ) << std::endl;
 			streamlog_out(DEBUG4) << "		trueOfSeenJet (Px,Py,Pz,E):	" << ptrueseen( i_trueJet )[ 0 ] << " , " << ptrueseen( i_trueJet )[ 1 ] << " , " << ptrueseen( i_trueJet )[ 2 ] << " , " << Etrueseen( i_trueJet ) << std::endl;
 			streamlog_out(DEBUG4) << "		seenJet (Px,Py,Pz,E):		" << pseen( i_trueJet )[ 0 ] << " , " << pseen( i_trueJet )[ 1 ] << " , " << pseen( i_trueJet )[ 2 ] << " , " << Eseen( i_trueJet ) << std::endl;
+			streamlog_out(DEBUG4) << "" << std::endl;
 		}
-
+		streamlog_out(DEBUG8) << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
 		if ( m_nRecoJets == 0 || njets == 0 ) return;
 
 		std::vector<ReconstructedParticle*> recoJetVector{};
@@ -391,47 +401,126 @@ void JetErrorAnalysis::processEvent( LCEvent* pLCEvent)
 		for ( int i_recoJet = 0 ; i_recoJet < m_nRecoJets ; ++i_recoJet )
 		{
 			ReconstructedParticle *recoJet = dynamic_cast<ReconstructedParticle*>( recoJetCol->getElementAt( i_recoJet ) );
-			ReconstructedParticle* leadingParticle = NULL;
-			float leadingEnergy = 0.0;
-			streamlog_out(DEBUG2) << "Looking for leading particle in recoJet[ " << i_recoJet << " ] with " << ( recoJet->getParticles() ).size() << " particles" << std::endl;
-			for ( unsigned int i_par = 0 ; i_par < ( recoJet->getParticles() ).size() ; ++i_par )
+			if ( m_jetMatchingMethod == 1 )
 			{
-				ReconstructedParticle* pfo = ( ReconstructedParticle* )recoJet->getParticles()[ i_par ];
-				streamlog_out(DEBUG0) << "Checking particle " << i_par << " with Energy = " << pfo->getEnergy() << std::endl;
-				if ( abs( pfo->getType() ) == 12 || abs( pfo->getType() ) == 14 || abs( pfo->getType() ) == 16 ) continue;
-				if ( pfo->getEnergy() > leadingEnergy )
+				ReconstructedParticle* leadingParticle = NULL;
+				float leadingEnergy = 0.0;
+				streamlog_out(DEBUG2) << "Looking for leading particle in recoJet[ " << i_recoJet << " ] with " << ( recoJet->getParticles() ).size() << " particles" << std::endl;
+				for ( unsigned int i_par = 0 ; i_par < ( recoJet->getParticles() ).size() ; ++i_par )
 				{
-					leadingParticle = pfo;
-					leadingEnergy = pfo->getEnergy();
-					streamlog_out(DEBUG0) << "Leading particle so far: " << std::endl;
-					streamlog_out(DEBUG0) << *leadingParticle << std::endl;
+					ReconstructedParticle* pfo = ( ReconstructedParticle* )recoJet->getParticles()[ i_par ];
+					streamlog_out(DEBUG0) << "Checking particle " << i_par << " with Energy = " << pfo->getEnergy() << std::endl;
+					if ( abs( pfo->getType() ) == 12 || abs( pfo->getType() ) == 14 || abs( pfo->getType() ) == 16 ) continue;
+					if ( pfo->getEnergy() > leadingEnergy )
+					{
+						leadingParticle = pfo;
+						leadingEnergy = pfo->getEnergy();
+						streamlog_out(DEBUG0) << "Leading particle so far: " << std::endl;
+						streamlog_out(DEBUG0) << *leadingParticle << std::endl;
+					}
+				}
+				streamlog_out(DEBUG2) << "Leading particle in recoJet [ " << i_recoJet << " ]:" << std::endl;
+				streamlog_out(DEBUG2) << *leadingParticle << std::endl;
+
+				if ( leadingParticle != NULL )
+				{
+					int trueJetIndex = recojet( leadingParticle );
+					//LCObjectVec jetvec = reltjreco->getRelatedFromObjects( leadingParticle );
+					//streamlog_out(DEBUG2) << jetvec.size() << " true Jet found for leading particle of jet " << i_recoJet << std::endl;
+					//if ( jetvec.size() != 0 && type_jet( jetindex( dynamic_cast<ReconstructedParticle*>( jetvec[ 0 ] ) ) ) == 1 )
+					if ( trueJetIndex >= 0 && type_jet( trueJetIndex ) == 1 )
+					{
+						//trueJetIndex = jetindex( dynamic_cast<ReconstructedParticle*>( jetvec[ 0 ] ) );
+						recoJetVector.push_back( recoJet );
+						leadingParticles.push_back( leadingParticle );
+						trueJetVectorIndex.push_back( trueJetIndex );
+						++m_nTrueJets;
+						streamlog_out(DEBUG2) << " The index of trueJet containing leading particle of recoJet [ " << i_recoJet << " ]: " << trueJetIndex << " , trueJet Type = " << type_jet( trueJetIndex ) << std::endl;
+					}
 				}
 			}
-			streamlog_out(DEBUG2) << "Leading particle in recoJet [ " << i_recoJet << " ]:" << std::endl;
-			streamlog_out(DEBUG2) << *leadingParticle << std::endl;
-			if ( leadingParticle != NULL )
+			else if ( m_jetMatchingMethod == 2 )
 			{
-				int trueJetIndex = recojet( leadingParticle );
-				//LCObjectVec jetvec = reltjreco->getRelatedFromObjects( leadingParticle );
-				//streamlog_out(DEBUG2) << jetvec.size() << " true Jet found for leading particle of jet " << i_recoJet << std::endl;
-				//if ( jetvec.size() != 0 && type_jet( jetindex( dynamic_cast<ReconstructedParticle*>( jetvec[ 0 ] ) ) ) == 1 )
-				if ( trueJetIndex >= 0 )//&& type_jet( trueJetIndex ) == 1 )
+				streamlog_out(DEBUG4) << "	Finding closest trueJet to recoJet[ " << i_recoJet << " ]" << std::endl;
+				TVector3 recoJetDirection( recoJet->getMomentum() ); recoJetDirection.SetMag( 1.0 );
+				streamlog_out(DEBUG4) << "		Direction of recoJet (Ux,Uy,Uz):	" << recoJetDirection.X() << " , " << recoJetDirection.Y() << " , " << recoJetDirection.Z() << std::endl;
+				double cosMaxAngle = -1.0;
+				int i_matchedtrueJet = -1;
+				for ( int i_trueJet = 0 ; i_trueJet < njets ; ++i_trueJet )
 				{
-					//trueJetIndex = jetindex( dynamic_cast<ReconstructedParticle*>( jetvec[ 0 ] ) );
+					if ( type_jet( i_trueJet ) == 1 )
+					{
+						TVector3 trueJetDirection( initial_elementon( i_trueJet )->getMomentum() ); trueJetDirection.SetMag( 1.0 );
+						streamlog_out(DEBUG4) << "		Checking trueJet[ " << i_trueJet << " ] with Type: " << type_jet( i_trueJet ) << std::endl;
+						streamlog_out(DEBUG4) << "		Direction of trueJet (Ux,Uy,Uz):	" << trueJetDirection.X() << " , " << trueJetDirection.Y() << " , " << trueJetDirection.Z() << std::endl;
+						if ( recoJetDirection.Dot( trueJetDirection ) > cosMaxAngle )
+						{
+							bool trueJetExist = false;
+							for ( unsigned int i_jet = 0 ; i_jet < trueJetVectorIndex.size() ; ++i_jet )
+							{
+								if ( initial_elementon( trueJetVectorIndex[ i_jet ] ) == initial_elementon( i_trueJet ) ) trueJetExist = true;
+							}
+							if ( !trueJetExist )
+							{
+								cosMaxAngle = recoJetDirection.Dot( trueJetDirection );
+								i_matchedtrueJet = i_trueJet;
+							}
+						}
+					}
+				}
+				if ( i_matchedtrueJet != -1 )
+				{
 					recoJetVector.push_back( recoJet );
-					leadingParticles.push_back( leadingParticle );
-					trueJetVectorIndex.push_back( trueJetIndex );
+					trueJetVectorIndex.push_back( i_matchedtrueJet );
 					++m_nTrueJets;
-					streamlog_out(DEBUG2) << " The index of trueJet containing leading particle of recoJet [ " << i_recoJet << " ]: " << trueJetIndex << " , trueJet Type = " << type_jet( trueJetIndex ) << std::endl;
+					streamlog_out(DEBUG2) << " The index of trueJet with lowest angle to recoJet [ " << i_recoJet << " ]: " << i_matchedtrueJet << " , trueJet Type = " << type_jet( i_matchedtrueJet ) << std::endl;
 				}
 			}
 		}
-		streamlog_out(DEBUG4) << "	" << recoJetVector.size() << " recoJets and " << trueJetVectorIndex.size() << " true Jets are find and matched" << std::endl;
+		streamlog_out(DEBUG8) << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
+		streamlog_out(DEBUG4) << "	" << recoJetVector.size() << " recoJets and " << trueJetVectorIndex.size() << " true Jets are found and matched" << std::endl;
+		streamlog_out(DEBUG8) << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
 		for ( unsigned int i_jet = 0 ; i_jet < recoJetVector.size() ; ++i_jet )
 		{
+			TLorentzVector initial_elementFourMomentum( initial_elementon( trueJetVectorIndex[ i_jet ] )->getMomentum() , initial_elementon( trueJetVectorIndex[ i_jet ] )->getEnergy() );
+			TLorentzVector quarkFourMomentum( 0.0 , 0.0 , 0.0 , 0.0 );
+			TLorentzVector trueJetFourMomentum( 0.0 , 0.0 , 0.0 , 0.0 );
+			TLorentzVector trueOfSeenJetFourMomentum( 0.0 , 0.0 , 0.0 , 0.0 );
+			TLorentzVector seenJetFourMomentum( 0.0 , 0.0 , 0.0 , 0.0 );
+			TLorentzVector recoJetFourMomentum( recoJetVector[ i_jet ]->getMomentum() , recoJetVector[ i_jet ]->getEnergy() );
+			quarkFourMomentum = TLorentzVector( initial_elementon( trueJetVectorIndex[ i_jet ] )->getMomentum() , initial_elementon( trueJetVectorIndex[ i_jet ] )->getEnergy() );
+			for ( int i_trueJet = 0 ; i_trueJet < trueJet->njets() ; ++i_trueJet )
+			{
+				if ( initial_elementon( trueJetVectorIndex[ i_jet ] ) == initial_elementon( i_trueJet ) )
+				{
+					//quarkFourMomentum += TLorentzVector( pquark( i_trueJet ) , Equark( i_trueJet ) );
+					trueJetFourMomentum += TLorentzVector( ptrue( i_trueJet ) , Etrue( i_trueJet ) );
+					trueOfSeenJetFourMomentum += TLorentzVector( ptrueseen( i_trueJet ) , Etrueseen( i_trueJet ) );
+					seenJetFourMomentum += TLorentzVector( pseen( i_trueJet ) , Eseen( i_trueJet ) );
+				}
+			}
+			/*
+			trueJetFourMomentum = TLorentzVector( ptrue( trueJetVectorIndex[ i_jet ] ) , Etrue( trueJetVectorIndex[ i_jet ] ) );
+			trueOfSeenJetFourMomentum = TLorentzVector( ptrueseen( trueJetVectorIndex[ i_jet ] ) , Etrueseen( trueJetVectorIndex[ i_jet ] ) );
+			seenJetFourMomentum = TLorentzVector( pseen( trueJetVectorIndex[ i_jet ] ) , Eseen( trueJetVectorIndex[ i_jet ] ) );
+			*/
+
 			streamlog_out(DEBUG4) << "----------------------------------------------------------------------------------------------------------------" << std::endl;
+			streamlog_out(DEBUG4) << "Four-Momenta using siblings" << std::endl;
 			streamlog_out(DEBUG4) << "Reconstructed Jet[ " << i_jet << " ] matches true jet [ " << trueJetVectorIndex[ i_jet ] << " ] by finding leading particle" << std::endl;
 			streamlog_out(DEBUG4) << "	trueJet TYPE:	" << type_jet( trueJetVectorIndex[ i_jet ] ) << std::endl;
+			streamlog_out(DEBUG4) << "	initial_element (Px,Py,Pz,E):	" << initial_elementon( trueJetVectorIndex[ i_jet ] )->getMomentum()[ 0 ] << " , " << initial_elementon( trueJetVectorIndex[ i_jet ] )->getMomentum()[ 1 ] << " , " << initial_elementon( trueJetVectorIndex[ i_jet ] )->getMomentum()[ 2 ] << " , " << initial_elementon( trueJetVectorIndex[ i_jet ] )->getEnergy() << std::endl;
+			streamlog_out(DEBUG4) << "	Quark (Px,Py,Pz,E):		" << quarkFourMomentum.Px() << " , " << quarkFourMomentum.Py() << " , " << quarkFourMomentum.Pz() << " , " << quarkFourMomentum.E() << std::endl;
+			streamlog_out(DEBUG4) << "	trueJet (Px,Py,Pz,E):		" << trueJetFourMomentum.Px() << " , " << trueJetFourMomentum.Py() << " , " << trueJetFourMomentum.Pz() << " , " << trueJetFourMomentum.E() << std::endl;
+			streamlog_out(DEBUG4) << "	trueOfSeenJet (Px,Py,Pz,E):	" << trueOfSeenJetFourMomentum.Px() << " , " << trueOfSeenJetFourMomentum.Py() << " , " << trueOfSeenJetFourMomentum.Pz() << " , " << trueOfSeenJetFourMomentum.E() << std::endl;
+			streamlog_out(DEBUG4) << "	seenJet (Px,Py,Pz,E):		" << seenJetFourMomentum.Px() << " , " << seenJetFourMomentum.Py() << " , " << seenJetFourMomentum.Pz() << " , " << seenJetFourMomentum.E() << std::endl;
+			streamlog_out(DEBUG4) << "	recoJet (Px,Py,Pz,E):		" << recoJetFourMomentum.Px() << " , " << recoJetFourMomentum.Py() << " , " << recoJetFourMomentum.Pz() << " , " << recoJetFourMomentum.E() << std::endl;
+			streamlog_out(DEBUG4) << "" << std::endl;
+			streamlog_out(DEBUG4) << "----------------------------------------------------------------------------------------------------------------" << std::endl;
+			streamlog_out(DEBUG4) << "Four-Momenta using Indices" << std::endl;
+			streamlog_out(DEBUG4) << "Reconstructed Jet[ " << i_jet << " ] matches true jet [ " << trueJetVectorIndex[ i_jet ] << " ] by finding leading particle" << std::endl;
+			streamlog_out(DEBUG4) << "	trueJet TYPE:	" << type_jet( trueJetVectorIndex[ i_jet ] ) << std::endl;
+			streamlog_out(DEBUG4) << "	initial_element (Px,Py,Pz,E):	" << initial_elementon( trueJetVectorIndex[ i_jet ] )->getMomentum()[ 0 ] << " , " << initial_elementon( trueJetVectorIndex[ i_jet ] )->getMomentum()[ 1 ] << " , " << initial_elementon( trueJetVectorIndex[ i_jet ] )->getMomentum()[ 2 ] << " , " << initial_elementon( trueJetVectorIndex[ i_jet ] )->getEnergy() << std::endl;
 			streamlog_out(DEBUG4) << "	Quark (Px,Py,Pz,E):		" << pquark( trueJetVectorIndex[ i_jet ] )[ 0 ] << " , " << pquark( trueJetVectorIndex[ i_jet ] )[ 1 ] << " , " << pquark( trueJetVectorIndex[ i_jet ] )[ 2 ] << " , " << Equark( trueJetVectorIndex[ i_jet ] ) << std::endl;
 			streamlog_out(DEBUG4) << "	trueJet (Px,Py,Pz,E):		" << ptrue( trueJetVectorIndex[ i_jet ] )[ 0 ] << " , " << ptrue( trueJetVectorIndex[ i_jet ] )[ 1 ] << " , " << ptrue( trueJetVectorIndex[ i_jet ] )[ 2 ] << " , " << Etrue( trueJetVectorIndex[ i_jet ] ) << std::endl;
 			streamlog_out(DEBUG4) << "	trueOfSeenJet (Px,Py,Pz,E):	" << ptrueseen( trueJetVectorIndex[ i_jet ] )[ 0 ] << " , " << ptrueseen( trueJetVectorIndex[ i_jet ] )[ 1 ] << " , " << ptrueseen( trueJetVectorIndex[ i_jet ] )[ 2 ] << " , " << Etrueseen( trueJetVectorIndex[ i_jet ] ) << std::endl;
@@ -439,12 +528,15 @@ void JetErrorAnalysis::processEvent( LCEvent* pLCEvent)
 			streamlog_out(DEBUG4) << "	recoJet (Px,Py,Pz,E):		" << recoJetVector[ i_jet ]->getMomentum()[ 0 ] << " , " << recoJetVector[ i_jet ]->getMomentum()[ 1 ] << " , " << recoJetVector[ i_jet ]->getMomentum()[ 2 ] << " , " << recoJetVector[ i_jet ]->getEnergy() << std::endl;
 			streamlog_out(DEBUG3) << "	recoJet[ " << i_jet << " ]:" << std::endl;
 			streamlog_out(DEBUG3) << *recoJetVector[ i_jet ] << std::endl;
-			streamlog_out(DEBUG3) << "	leadingParticle:" << std::endl;
-			streamlog_out(DEBUG3) << *leadingParticles[ i_jet ] << std::endl;
+			if ( m_jetMatchingMethod == 1 ) streamlog_out(DEBUG3) << "	leadingParticle:" << std::endl;
+			if ( m_jetMatchingMethod == 1 ) streamlog_out(DEBUG3) << *leadingParticles[ i_jet ] << std::endl;
 			streamlog_out(DEBUG4) << "" << std::endl;
 			m_trueJetType.push_back( type_jet( trueJetVectorIndex[ i_jet ] ) );
-			TVector3 quarkMomentum( pquark( trueJetVectorIndex[ i_jet ] )[ 0 ] , pquark( trueJetVectorIndex[ i_jet ] )[ 1 ] , pquark( trueJetVectorIndex[ i_jet ] )[ 2 ] );
-			double quarkEnergy = Equark( trueJetVectorIndex[ i_jet ] );
+			/*
+			TVector3 quarkMomentum( initial_elementon( trueJetVectorIndex[ i_jet ] )->getMomentum()[ 0 ] , initial_elementon( trueJetVectorIndex[ i_jet ] )->getMomentum()[ 1 ] , initial_elementon( trueJetVectorIndex[ i_jet ] )->getMomentum()[ 2 ] );
+			double quarkEnergy = initial_elementon( trueJetVectorIndex[ i_jet ] )->getEnergy();
+			//TVector3 quarkMomentum( pquark( trueJetVectorIndex[ i_jet ] )[ 0 ] , pquark( trueJetVectorIndex[ i_jet ] )[ 1 ] , pquark( trueJetVectorIndex[ i_jet ] )[ 2 ] );
+			//double quarkEnergy = Equark( trueJetVectorIndex[ i_jet ] );
 			TVector3 jetTrueMomentum( ptrue( trueJetVectorIndex[ i_jet ] )[ 0 ] , ptrue( trueJetVectorIndex[ i_jet ] )[ 1 ] , ptrue( trueJetVectorIndex[ i_jet ] )[ 2 ] );
 			double jetTrueEnergy = Etrue( trueJetVectorIndex[ i_jet ] );
 			TVector3 jetTrueSeenMomentum( ptrueseen( trueJetVectorIndex[ i_jet ] )[ 0 ] , ptrueseen( trueJetVectorIndex[ i_jet ] )[ 1 ] , ptrueseen( trueJetVectorIndex[ i_jet ] )[ 2 ] );
@@ -453,6 +545,13 @@ void JetErrorAnalysis::processEvent( LCEvent* pLCEvent)
 			double jetSeenEnergy = Eseen( trueJetVectorIndex[ i_jet ] );
 			TVector3 jetRecoMomentum( recoJetVector[ i_jet ]->getMomentum() );
 			double jetRecoEnergy = recoJetVector[ i_jet ]->getEnergy();
+			*/
+
+			TVector3 quarkMomentum = quarkFourMomentum.Vect(); double quarkEnergy = quarkFourMomentum.E();
+			TVector3 jetTrueMomentum = trueJetFourMomentum.Vect(); double jetTrueEnergy = trueJetFourMomentum.E();
+			TVector3 jetTrueSeenMomentum = trueOfSeenJetFourMomentum.Vect(); double jetTrueSeenEnergy = trueOfSeenJetFourMomentum.E();
+			TVector3 jetSeenMomentum = seenJetFourMomentum.Vect(); double jetSeenEnergy = seenJetFourMomentum.E();
+			TVector3 jetRecoMomentum = recoJetFourMomentum.Vect(); double jetRecoEnergy = recoJetFourMomentum.E();
 			double jetPxResidual , jetPyResidual , jetPzResidual , jetEnergyResidual , jetThetaResidual , jetPhiResidual;
 			double jetPxResidualSeen , jetPyResidualSeen , jetPzResidualSeen , jetEnergyResidualSeen , jetThetaResidualSeen , jetPhiResidualSeen;
 			double jetSigmaE , jetSigmaTheta , jetSigmaPhi;
