@@ -376,6 +376,12 @@ void JetErrorAnalysis::processEvent( LCEvent* pLCEvent)
 
 		m_nRecoJets = recoJetCol->getNumberOfElements();
 		streamlog_out(DEBUG8) << "	Number of Reconstructed Jets: " << m_nRecoJets << std::endl;
+		for ( int i_recoJet = 0 ; i_recoJet < m_nRecoJets ; ++i_recoJet )
+		{
+			ReconstructedParticle *recoJet = dynamic_cast<ReconstructedParticle*>( recoJetCol->getElementAt( i_recoJet ) );
+			streamlog_out(DEBUG4) << "		recoJet (Px,Py,Pz,E):		" << recoJet->getMomentum()[ 0 ] << " , " << recoJet->getMomentum()[ 1 ] << " , " << recoJet->getMomentum()[ 2 ] << " , " << recoJet->getEnergy() << std::endl;
+			streamlog_out(DEBUG4) << "" << std::endl;
+		}
 		streamlog_out(DEBUG8) << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
 
 		int njets = trueJet->njets();
@@ -506,8 +512,8 @@ void JetErrorAnalysis::processEvent( LCEvent* pLCEvent)
 			*/
 
 			streamlog_out(DEBUG4) << "----------------------------------------------------------------------------------------------------------------" << std::endl;
+			streamlog_out(DEBUG4) << "Reconstructed Jet[ " << i_jet << " ] matches true jet [ " << trueJetVectorIndex[ i_jet ] << " ]" << std::endl;
 			streamlog_out(DEBUG4) << "Four-Momenta using siblings" << std::endl;
-			streamlog_out(DEBUG4) << "Reconstructed Jet[ " << i_jet << " ] matches true jet [ " << trueJetVectorIndex[ i_jet ] << " ] by finding leading particle" << std::endl;
 			streamlog_out(DEBUG4) << "	trueJet TYPE:	" << type_jet( trueJetVectorIndex[ i_jet ] ) << std::endl;
 			streamlog_out(DEBUG4) << "	initial_element (Px,Py,Pz,E):	" << initial_elementon( trueJetVectorIndex[ i_jet ] )->getMomentum()[ 0 ] << " , " << initial_elementon( trueJetVectorIndex[ i_jet ] )->getMomentum()[ 1 ] << " , " << initial_elementon( trueJetVectorIndex[ i_jet ] )->getMomentum()[ 2 ] << " , " << initial_elementon( trueJetVectorIndex[ i_jet ] )->getEnergy() << std::endl;
 			streamlog_out(DEBUG4) << "	Quark (Px,Py,Pz,E):		" << quarkFourMomentum.Px() << " , " << quarkFourMomentum.Py() << " , " << quarkFourMomentum.Pz() << " , " << quarkFourMomentum.E() << std::endl;
@@ -518,7 +524,6 @@ void JetErrorAnalysis::processEvent( LCEvent* pLCEvent)
 			streamlog_out(DEBUG4) << "" << std::endl;
 			streamlog_out(DEBUG4) << "----------------------------------------------------------------------------------------------------------------" << std::endl;
 			streamlog_out(DEBUG4) << "Four-Momenta using Indices" << std::endl;
-			streamlog_out(DEBUG4) << "Reconstructed Jet[ " << i_jet << " ] matches true jet [ " << trueJetVectorIndex[ i_jet ] << " ] by finding leading particle" << std::endl;
 			streamlog_out(DEBUG4) << "	trueJet TYPE:	" << type_jet( trueJetVectorIndex[ i_jet ] ) << std::endl;
 			streamlog_out(DEBUG4) << "	initial_element (Px,Py,Pz,E):	" << initial_elementon( trueJetVectorIndex[ i_jet ] )->getMomentum()[ 0 ] << " , " << initial_elementon( trueJetVectorIndex[ i_jet ] )->getMomentum()[ 1 ] << " , " << initial_elementon( trueJetVectorIndex[ i_jet ] )->getMomentum()[ 2 ] << " , " << initial_elementon( trueJetVectorIndex[ i_jet ] )->getEnergy() << std::endl;
 			streamlog_out(DEBUG4) << "	Quark (Px,Py,Pz,E):		" << pquark( trueJetVectorIndex[ i_jet ] )[ 0 ] << " , " << pquark( trueJetVectorIndex[ i_jet ] )[ 1 ] << " , " << pquark( trueJetVectorIndex[ i_jet ] )[ 2 ] << " , " << Equark( trueJetVectorIndex[ i_jet ] ) << std::endl;

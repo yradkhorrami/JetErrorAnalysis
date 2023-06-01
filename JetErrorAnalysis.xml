@@ -26,8 +26,8 @@
 	<execute>
 		<processor name="InitDD4hep" condition="" />
 		<processor name="mytruejet"/>
-		<processor name="MyChargedPFOCorrection" condition="" />
-		<processor name="MyAddNeutralPFOCovMat" condition="" />
+		<!--processor name="MyChargedPFOCorrection" condition="" />
+		<processor name="MyAddNeutralPFOCovMat" condition="" /-->
 		<processor name="MyIsolatedLeptonTaggingProcessor"/>
 		<processor name="MyFastJetProcessor"/>
 		<processor name="MyZHEvents"/>
@@ -308,7 +308,7 @@ with overlay
 		<!--Name of the input reconstructed Jet collection-->
 		<parameter name="RecoJetCollection" type="string" lcioInType="ReconstructedParticle">OutputErrorFlowJets </parameter>
 		<!-- method for matching TRUE-RECO jets: [1] finding leading particle of reco jet in true jets, [2] direction of jets -->
-		<parameter name="jetMatchingMethod" type="int"> 2 </parameter>
+		<parameter name="jetMatchingMethod" type="int">2</parameter>
 		<!-- name of Output root file -->
 		<parameter name="outputFilename" type="string"> ${OutputDirectory}/${OutputBaseName}_JetErrorAnalysis.root </parameter>
 		<!-- name of Histograms -->
