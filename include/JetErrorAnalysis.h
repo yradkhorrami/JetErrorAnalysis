@@ -47,6 +47,9 @@ class JetErrorAnalysis : public Processor , public TrueJet_Parser
 		JetErrorAnalysis(const JetErrorAnalysis&) = delete;
 		JetErrorAnalysis& operator=(const JetErrorAnalysis&) = delete;
 
+		typedef std::vector<EVENT::MCParticle*>			mcpVector;
+		typedef std::vector<EVENT::ReconstructedParticle*>	pfoVector;
+
 		/*
 		* Called at the begin of the job before anything is read.
 		* Use to initialize the processor, e.g. book histograms.
@@ -73,7 +76,7 @@ class JetErrorAnalysis : public Processor , public TrueJet_Parser
 		* called for every reconstructed jet
 		*/
 		virtual void	getJetResolutions( TLorentzVector jetFourMomentum , std::vector<float> jetCovMat , double &sigmaE , double &sigmaTheta , double &sigmaPhi );
-
+		EVENT::ReconstructedParticle* getLinkedPFO( EVENT::MCParticle *mcParticle , LCRelationNavigator RecoMCParticleNav , LCRelationNavigator MCParticleRecoNav , bool getChargedPFO , bool getNeutralPFO , float &weightPFOtoMCP , float &weightMCPtoPFO );
 
 		virtual void InitializeHistogram( TH1F *histogram , bool scale , int color , int lineWidth , int markerSize , int markerStyle , bool fitGaussian );
 		virtual void doProperGaussianFit( TH1F *histogram , float fitMin , float fitMax , float fitRange );
@@ -105,6 +108,8 @@ class JetErrorAnalysis : public Processor , public TrueJet_Parser
 		int					m_nEvtSum;
 		int					m_nTrueJets;
 		int					m_nRecoJets;
+		int					m_nIsoLeptons;
+		IntVector			m_nSeenISRs{};
 		floatVector				m_quarkPx{};
 		floatVector				m_quarkPy{};
 		floatVector				m_quarkPz{};
@@ -201,10 +206,12 @@ class JetErrorAnalysis : public Processor , public TrueJet_Parser
 
 	private:
 
+		std::string				m_inputIsolatedleptonCollection{};
 		std::string				m_recoJetCollectionName{};
 		std::string				_MCParticleColllectionName{};
 		std::string				_recoParticleCollectionName{};
 		std::string				_recoMCTruthLink{};
+		std::string				_MCTruthRecoLink{};
 		int						m_jetMatchingMethod{};
 //		std::string				_trueJetCollectionName{};
 		std::string				m_outputFile{};
@@ -215,7 +222,7 @@ class JetErrorAnalysis : public Processor , public TrueJet_Parser
 		float					m_minKaonTrackEnergy{};
 		float					m_minProtonTrackEnergy{};
 		TFile					*m_pTFile;
-	        TTree					*m_pTTree;
+	    TTree					*m_pTTree;
 
 };
 

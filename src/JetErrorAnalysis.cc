@@ -34,6 +34,7 @@ m_nRunSum(0),
 m_nEvtSum(0),
 m_nTrueJets(0),
 m_nRecoJets(0),
+m_nIsoLeptons(0),
 m_pTFile(NULL),
 m_pTTree(NULL)
 {
@@ -46,6 +47,13 @@ m_pTTree(NULL)
 
 
 	// Inputs: MC-particles, Reco-particles, the link between the two
+
+	registerInputCollection( 	LCIO::RECONSTRUCTEDPARTICLE,
+					"isolatedleptonCollection" ,
+					"Name of the Isolated Lepton collection"  ,
+					m_inputIsolatedleptonCollection ,
+					std::string("ISOLeptons")
+				);
 
 	registerInputCollection( 	LCIO::RECONSTRUCTEDPARTICLE,
 					"RecoJetCollection" ,
@@ -93,6 +101,13 @@ m_pTTree(NULL)
 	// Inputs: True jets (as a recoparticle, will be the sum of the _reconstructed particles_
 	// created by the true particles in each true jet, in the RecoMCTruthLink sense.
 	// link jet-to-reco particles, link jet-to-MC-particles.
+
+	registerInputCollection( 	LCIO::LCRELATION,
+					"MCTruthRecoLink",
+					"Name of the MCTruthRecoLink input collection"  ,
+					_MCTruthRecoLink,
+					std::string("MCTruthRecoLink")
+				);
 
 	registerInputCollection( 	LCIO::MCPARTICLE,
 					"MCParticleCollection" ,
@@ -200,6 +215,8 @@ void JetErrorAnalysis::init()
 		m_pTTree->Branch("event", &m_nEvt, "event/I");
 		m_pTTree->Branch("nTrueJets",&m_nTrueJets,"nTrueJets/I") ;
 		m_pTTree->Branch("nRecoJets",&m_nRecoJets,"nRecoJets/I") ;
+		m_pTTree->Branch("nIsoLeptons",&m_nIsoLeptons,"nIsoLeptons/I") ;
+		m_pTTree->Branch("nSeenISRs",&m_nSeenISRs) ;
 		m_pTTree->Branch("quarkPx",&m_quarkPx) ;
 		m_pTTree->Branch("quarkPy",&m_quarkPy) ;
 		m_pTTree->Branch("quarkPz",&m_quarkPz) ;
@@ -288,6 +305,8 @@ void JetErrorAnalysis::Clear()
 {
 	m_nTrueJets = 0;
 	m_nRecoJets = 0;
+	m_nIsoLeptons = 0;
+	m_nSeenISRs.clear();
 	m_quarkPx.clear();
 	m_quarkPy.clear();
 	m_quarkPz.clear();
@@ -356,6 +375,7 @@ void JetErrorAnalysis::processRunHeader()
 void JetErrorAnalysis::processEvent( LCEvent* pLCEvent)
 {
 	LCCollection *recoJetCol{};
+	LCCollection *isoLepCol{};
 	//LCCollection *trueJetCol{};
 	m_nRun = pLCEvent->getRunNumber();
 	m_nEvt = pLCEvent->getEventNumber();
@@ -369,33 +389,99 @@ void JetErrorAnalysis::processEvent( LCEvent* pLCEvent)
 
 	try
 	{
+		LCRelationNavigator RecoMCParticleNav( pLCEvent->getCollection( _recoMCTruthLink ) );
+		LCRelationNavigator MCParticleRecoNav( pLCEvent->getCollection( _MCTruthRecoLink ) );
+		streamlog_out(DEBUG6) << "	Reading collection " << m_recoJetCollectionName << std::endl;
 		recoJetCol		= pLCEvent->getCollection( m_recoJetCollectionName );
+		m_nRecoJets = recoJetCol->getNumberOfElements();
+		streamlog_out(DEBUG6) << "	Collection " << m_recoJetCollectionName << " was red with " << m_nRecoJets << " elements" << std::endl;
+		streamlog_out(DEBUG6) << "	Reading collection " << m_inputIsolatedleptonCollection << std::endl;
+		isoLepCol		= pLCEvent->getCollection( m_inputIsolatedleptonCollection );
+		m_nIsoLeptons = isoLepCol->getNumberOfElements();
+		streamlog_out(DEBUG6) << "	Collection " << m_inputIsolatedleptonCollection << " was red with " << m_nIsoLeptons << " elements" << std::endl;
 		//trueJetCol		= pLCEvent->getCollection( _trueJetCollectionName );
 		TrueJet_Parser* trueJet	= this;
 		trueJet->getall( pLCEvent );
 
-		m_nRecoJets = recoJetCol->getNumberOfElements();
-		streamlog_out(DEBUG8) << "	Number of Reconstructed Jets: " << m_nRecoJets << std::endl;
-		for ( int i_recoJet = 0 ; i_recoJet < m_nRecoJets ; ++i_recoJet )
-		{
-			ReconstructedParticle *recoJet = dynamic_cast<ReconstructedParticle*>( recoJetCol->getElementAt( i_recoJet ) );
-			streamlog_out(DEBUG4) << "		recoJet (Px,Py,Pz,E):		" << recoJet->getMomentum()[ 0 ] << " , " << recoJet->getMomentum()[ 1 ] << " , " << recoJet->getMomentum()[ 2 ] << " , " << recoJet->getEnergy() << std::endl;
-			streamlog_out(DEBUG4) << "" << std::endl;
-		}
 		streamlog_out(DEBUG8) << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
 
 		int njets = trueJet->njets();
+		
+		//_COUNT_FSR = 1;
+		std::vector<int> seenISRinRecoJetIndex{};for ( int i = 0; i < m_nRecoJets; ++i ) seenISRinRecoJetIndex.push_back( -1 );
 		streamlog_out(DEBUG8) << "	Number of True Jets: " << njets << std::endl;
 		for ( int i_trueJet = 0 ; i_trueJet < njets ; ++i_trueJet )
 		{
 			streamlog_out(DEBUG7) << "Type of trueJet[ " << i_trueJet << " ] = " << type_jet( i_trueJet ) << std::endl;
-			streamlog_out(DEBUG4) << "		initial_element (Px,Py,Pz,E):	" << initial_elementon( i_trueJet )->getMomentum()[ 0 ] << " , " << initial_elementon( i_trueJet )->getMomentum()[ 1 ] << " , " << initial_elementon( i_trueJet )->getMomentum()[ 2 ] << " , " << initial_elementon( i_trueJet )->getEnergy() << std::endl;
-			streamlog_out(DEBUG4) << "		final_element (Px,Py,Pz,E):	" << final_elementon( i_trueJet )->getMomentum()[ 0 ] << " , " << final_elementon( i_trueJet )->getMomentum()[ 1 ] << " , " << final_elementon( i_trueJet )->getMomentum()[ 2 ] << " , " << final_elementon( i_trueJet )->getEnergy() << std::endl;
-			streamlog_out(DEBUG4) << "		Quark (Px,Py,Pz,E):		" << pquark( i_trueJet )[ 0 ] << " , " << pquark( i_trueJet )[ 1 ] << " , " << pquark( i_trueJet )[ 2 ] << " , " << Equark( i_trueJet ) << std::endl;
+			if ( type_jet( i_trueJet ) != 5 )
+			{
+				streamlog_out(DEBUG4) << "		initial_element (Px,Py,Pz,E):	" << initial_elementon( i_trueJet )->getMomentum()[ 0 ] << " , " << initial_elementon( i_trueJet )->getMomentum()[ 1 ] << " , " << initial_elementon( i_trueJet )->getMomentum()[ 2 ] << " , " << initial_elementon( i_trueJet )->getEnergy() << std::endl;
+				streamlog_out(DEBUG4) << "		final_element (Px,Py,Pz,E):	" << final_elementon( i_trueJet )->getMomentum()[ 0 ] << " , " << final_elementon( i_trueJet )->getMomentum()[ 1 ] << " , " << final_elementon( i_trueJet )->getMomentum()[ 2 ] << " , " << final_elementon( i_trueJet )->getEnergy() << std::endl;
+				streamlog_out(DEBUG4) << "		Quark (Px,Py,Pz,E):		" << pquark( i_trueJet )[ 0 ] << " , " << pquark( i_trueJet )[ 1 ] << " , " << pquark( i_trueJet )[ 2 ] << " , " << Equark( i_trueJet ) << std::endl;
+			}
 			streamlog_out(DEBUG4) << "		trueJet (Px,Py,Pz,E):		" << ptrue( i_trueJet )[ 0 ] << " , " << ptrue( i_trueJet )[ 1 ] << " , " << ptrue( i_trueJet )[ 2 ] << " , " << Etrue( i_trueJet ) << std::endl;
 			streamlog_out(DEBUG4) << "		trueOfSeenJet (Px,Py,Pz,E):	" << ptrueseen( i_trueJet )[ 0 ] << " , " << ptrueseen( i_trueJet )[ 1 ] << " , " << ptrueseen( i_trueJet )[ 2 ] << " , " << Etrueseen( i_trueJet ) << std::endl;
 			streamlog_out(DEBUG4) << "		seenJet (Px,Py,Pz,E):		" << pseen( i_trueJet )[ 0 ] << " , " << pseen( i_trueJet )[ 1 ] << " , " << pseen( i_trueJet )[ 2 ] << " , " << Eseen( i_trueJet ) << std::endl;
+			if ( type_jet( i_trueJet ) == 4 )
+			{
+				m_nSeenISRs.push_back( seen_partics( i_trueJet ).size() );
+				streamlog_out(DEBUG4) << "		This jet has " << seen_partics( i_trueJet ).size() << " reconstructed ISR photon(s)" << std::endl;
+				TVector3 seenISRDirecion( pseen( i_trueJet ) ); seenISRDirecion.SetMag( 1.0 );
+				double cosMaxAngle = -1.0;
+				int i_matchedRecoJet = -1;
+				for ( int i_recoJet = 0 ; i_recoJet < m_nRecoJets ; ++i_recoJet )
+				{
+					ReconstructedParticle *recoJet = dynamic_cast<ReconstructedParticle*>( recoJetCol->getElementAt( i_recoJet ) );
+					TVector3 recoJetDirection( recoJet->getMomentum() ); recoJetDirection.SetMag( 1.0 );
+					if ( recoJetDirection.Dot( seenISRDirecion ) > cosMaxAngle )
+					{
+						cosMaxAngle = recoJetDirection.Dot( seenISRDirecion );
+						i_matchedRecoJet = i_recoJet;
+					}
+				}
+				seenISRinRecoJetIndex[ i_matchedRecoJet ] = i_trueJet;
+			}
+			
 			streamlog_out(DEBUG4) << "" << std::endl;
+		}
+		streamlog_out(DEBUG8) << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
+		streamlog_out(DEBUG8) << "	Number of Reconstructed Jets: " << m_nRecoJets << std::endl;
+		for ( int i_recoJet = 0 ; i_recoJet < m_nRecoJets ; ++i_recoJet )
+		{
+			ReconstructedParticle *recoJet = dynamic_cast<ReconstructedParticle*>( recoJetCol->getElementAt( i_recoJet ) );
+			streamlog_out(DEBUG4) << "		recoJet[ " << i_recoJet << " ] (Px,Py,Pz,E):		" << recoJet->getMomentum()[ 0 ] << " , " << recoJet->getMomentum()[ 1 ] << " , " << recoJet->getMomentum()[ 2 ] << " , " << recoJet->getEnergy() << std::endl;
+			if ( seenISRinRecoJetIndex[ i_recoJet ] != -1 ) streamlog_out(DEBUG4) << "		recoJet[ " << i_recoJet << " ] contains one reconstructed ISR photon at index " << seenISRinRecoJetIndex[ i_recoJet ] << std::endl; 
+			streamlog_out(DEBUG4) << "" << std::endl;
+		}
+		streamlog_out(DEBUG8) << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
+		streamlog_out(DEBUG8) << "	Number of Isolated Leptons: " << m_nIsoLeptons << std::endl;
+		for ( int i_isoLep = 0 ; i_isoLep < m_nIsoLeptons ; ++i_isoLep )
+		{
+			ReconstructedParticle *isoLep = dynamic_cast<ReconstructedParticle*>( isoLepCol->getElementAt( i_isoLep ) );
+			streamlog_out(DEBUG4) << "		isoLep[ " << i_isoLep << " ] (Px,Py,Pz,E):		" << isoLep->getMomentum()[ 0 ] << " , " << isoLep->getMomentum()[ 1 ] << " , " << isoLep->getMomentum()[ 2 ] << " , " << isoLep->getEnergy() << std::endl;
+			streamlog_out(DEBUG4) << "" << std::endl;
+		}
+		streamlog_out(DEBUG1) << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
+		streamlog_out(DEBUG1) << "	Number of Initial Colour Neutrals: " << nicn() << std::endl;
+		for ( int i_icn = 0 ; i_icn < nicn() ; ++i_icn )
+		{
+			streamlog_out(DEBUG1) << "Initial Colour Neutral[ " << i_icn << " ], Type = " << type_icn_parent( i_icn ) << " , PDG = " << pdg_icn_parent( i_icn ) << " with " << elementons_initial_cn( i_icn ).size() << " MCParticles" << std::endl;
+			for ( unsigned int i_mcp = 0 ; i_mcp < elementons_initial_cn( i_icn ).size() ; ++i_mcp )
+			{
+				streamlog_out(DEBUG1) << "MCParticle[ " << i_mcp << " ]: " << std::endl;
+				streamlog_out(DEBUG1) << *elementons_initial_cn( i_icn )[ i_mcp ] << std::endl;
+			}
+		}
+		streamlog_out(DEBUG1) << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
+		streamlog_out(DEBUG1) << "	Number of Final Colour Neutrals: " << nfcn() << std::endl;
+		for ( int i_fcn = 0 ; i_fcn < nfcn() ; ++i_fcn )
+		{
+			streamlog_out(DEBUG1) << "Final Colour Neutral[ " << i_fcn << " ], Type = " << type_fcn_parent( i_fcn ) << " , PDG = " << pdg_fcn_parent( i_fcn ) << " with " << elementons_final_cn( i_fcn ).size() << " MCParticles" << std::endl;
+			for ( unsigned int i_mcp = 0 ; i_mcp < elementons_final_cn( i_fcn ).size() ; ++i_mcp )
+			{
+				streamlog_out(DEBUG1) << "MCParticle[ " << i_mcp << " ]: " << std::endl;
+				streamlog_out(DEBUG1) << *elementons_final_cn( i_fcn )[ i_mcp ] << std::endl;
+			}
 		}
 		streamlog_out(DEBUG8) << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
 		if ( m_nRecoJets == 0 || njets == 0 ) return;
@@ -505,6 +591,68 @@ void JetErrorAnalysis::processEvent( LCEvent* pLCEvent)
 					seenJetFourMomentum += TLorentzVector( pseen( i_trueJet ) , Eseen( i_trueJet ) );
 				}
 			}
+			for ( unsigned int i_daughter = 0 ; i_daughter < initial_elementon( trueJetVectorIndex[ i_jet ] )->getDaughters().size() ; ++i_daughter )
+			{
+				MCParticle *daughter = initial_elementon( trueJetVectorIndex[ i_jet ] )->getDaughters()[ i_daughter ];
+				mcpVector trueFSRPhotons{}; trueFSRPhotons.clear();
+				pfoVector recoFSRPhotons{}; recoFSRPhotons.clear();
+				ReconstructedParticle *FSRPhoton = NULL;
+				if ( abs( daughter->getPDG() ) == 22 && daughter->getGeneratorStatus() == 1 )
+				{
+					trueJetFourMomentum += TLorentzVector( daughter->getMomentum() , daughter->getEnergy() );
+					float weightPFOtoMCP = 0.0;
+					float weightMCPtoPFO = 0.0;
+					FSRPhoton = getLinkedPFO( daughter , RecoMCParticleNav , MCParticleRecoNav , false , true , weightPFOtoMCP , weightMCPtoPFO );
+					if ( FSRPhoton != NULL )
+					{
+						recoFSRPhotons.push_back( FSRPhoton );
+					}
+					else if ( daughter->getDaughters().size() > 0 )
+					{
+						ReconstructedParticle *recoDaughter = NULL;
+						for ( unsigned int i_daughtersOfDaughters = 0 ; i_daughtersOfDaughters < daughter->getDaughters().size() ; ++i_daughtersOfDaughters )
+						{
+							streamlog_out(DEBUG1) << "Looking for reconstructed particle linked to daughter of true FSR photon:" << std::endl;
+							streamlog_out(DEBUG1) << *( daughter->getDaughters()[ i_daughtersOfDaughters ] ) << std::endl;
+							recoDaughter = getLinkedPFO( daughter->getDaughters()[ i_daughtersOfDaughters ] , RecoMCParticleNav , MCParticleRecoNav , false , false , weightPFOtoMCP , weightMCPtoPFO );
+							bool linkedRecoParExist = false;
+							for ( unsigned int i_recoPar = 0 ; i_recoPar < recoFSRPhotons.size() ; ++i_recoPar )
+							{
+								if ( recoFSRPhotons[ i_recoPar ] == recoDaughter ) linkedRecoParExist = true;
+							}
+							if ( recoDaughter != NULL && !linkedRecoParExist )
+							{
+								streamlog_out(DEBUG1) << "Linked reconstructed particle to daughter of true FSR photon:" << std::endl;
+								streamlog_out(DEBUG1) << *recoDaughter << std::endl;
+								recoFSRPhotons.push_back( recoDaughter );
+							}
+						}
+					}
+					for ( unsigned int i_d = 0 ; i_d < recoFSRPhotons.size() ; ++i_d )
+					{
+						if ( i_d == 0 )
+						{
+							trueOfSeenJetFourMomentum += TLorentzVector( daughter->getMomentum() , daughter->getEnergy() );
+							streamlog_out(DEBUG1) << "A FSR photon is added to true/seen jets:" << std::endl;
+							streamlog_out(DEBUG1) << *daughter << std::endl;
+						}
+						bool linkedRecoParExist = false;
+						for ( int i_trueJet = 0 ; i_trueJet < trueJet->njets() ; ++i_trueJet )
+						{
+							for ( unsigned int i_recoPar = 0 ; i_recoPar < seen_partics( i_trueJet ).size() ; ++i_recoPar )
+							{
+								if ( seen_partics( i_trueJet )[ i_recoPar ] == recoFSRPhotons[ i_d ] ) linkedRecoParExist = true;
+							}
+						}
+						if ( !linkedRecoParExist )
+						{
+							seenJetFourMomentum += TLorentzVector( recoFSRPhotons[ i_d ]->getMomentum() , recoFSRPhotons[ i_d ]->getEnergy() );
+							streamlog_out(DEBUG1) << *recoFSRPhotons[ i_d ] << std::endl;
+						}
+					}
+				}
+			}
+			//if ( seenISRinRecoJetIndex[ i_jet ] != -1 ) seenJetFourMomentum += TLorentzVector( pseen( seenISRinRecoJetIndex[ i_jet ] ) , Eseen( seenISRinRecoJetIndex[ i_jet ] ) );
 			/*
 			trueJetFourMomentum = TLorentzVector( ptrue( trueJetVectorIndex[ i_jet ] ) , Etrue( trueJetVectorIndex[ i_jet ] ) );
 			trueOfSeenJetFourMomentum = TLorentzVector( ptrueseen( trueJetVectorIndex[ i_jet ] ) , Etrueseen( trueJetVectorIndex[ i_jet ] ) );
@@ -689,6 +837,118 @@ void JetErrorAnalysis::getJetResolutions(	TLorentzVector jetFourMomentum , std::
 	streamlog_out(DEBUG1) << "			sigmaPhi	= " << sigmaPhi << std::endl ;
 
 }
+
+EVENT::ReconstructedParticle* JetErrorAnalysis::getLinkedPFO( EVENT::MCParticle *mcParticle , LCRelationNavigator RecoMCParticleNav , LCRelationNavigator MCParticleRecoNav , bool getChargedPFO , bool getNeutralPFO , float &weightPFOtoMCP , float &weightMCPtoPFO )
+{
+	streamlog_out(DEBUG1) << "" << std::endl;
+	streamlog_out(DEBUG1) << "Look for PFO linked to visible MCParticle:" << std::endl;
+
+	ReconstructedParticle* linkedPFO{};
+	bool foundlinkedPFO = false;
+	const EVENT::LCObjectVec& PFOvec = MCParticleRecoNav.getRelatedToObjects( mcParticle );
+	const EVENT::FloatVec&	PFOweightvec = MCParticleRecoNav.getRelatedToWeights( mcParticle );
+	streamlog_out(DEBUG0) << "Visible MCParticle is linked to " << PFOvec.size() << " PFO(s)" << std::endl;
+	weightPFOtoMCP = 0.0;
+	weightMCPtoPFO = 0.0;
+	double maxweightPFOtoMCP = 0.;
+	double maxweightMCPtoPFO = 0.;
+	int iPFOtoMCPmax = -1;
+	int iMCPtoPFOmax = -1;
+	for ( unsigned int i_pfo = 0; i_pfo < PFOvec.size(); i_pfo++ )
+	{
+		double pfo_weight = 0.0;
+		double trackWeight = ( int( PFOweightvec.at( i_pfo ) ) % 10000 ) / 1000.0;
+		double clusterWeight = ( int( PFOweightvec.at( i_pfo ) ) / 10000 ) / 1000.0;
+		if ( getChargedPFO && !getNeutralPFO )
+		{
+			pfo_weight = trackWeight;
+		}
+		else if ( getNeutralPFO && !getChargedPFO )
+		{
+			pfo_weight = clusterWeight;
+		}
+		else
+		{
+			pfo_weight = ( trackWeight > clusterWeight ? trackWeight : clusterWeight );
+		}
+		streamlog_out(DEBUG0) << "Visible MCParticle linkWeight to PFO: " << PFOweightvec.at( i_pfo ) << " (Track: " << trackWeight << " , Cluster: " << clusterWeight << ")" << std::endl;
+		ReconstructedParticle *testPFO = (ReconstructedParticle *) PFOvec.at( i_pfo );
+		if ( pfo_weight > maxweightMCPtoPFO )//&& track_weight >= m_MinWeightTrackMCTruthLink )
+		{
+			maxweightMCPtoPFO = pfo_weight;
+			iMCPtoPFOmax = i_pfo;
+			streamlog_out(DEBUG0) << "PFO at index: " << testPFO->id() << " has TYPE: " << testPFO->getType() << " and MCParticle to PFO link weight is " << pfo_weight << std::endl;
+		}
+	}
+	if ( getChargedPFO && maxweightMCPtoPFO < 0.8 )
+	{
+		streamlog_out(DEBUG1) << "MCParticle has link weight lower than 0.8 ( " << maxweightMCPtoPFO << " ), looking for linked PFO in clusters" << std::endl;
+		for ( unsigned int i_pfo = 0; i_pfo < PFOvec.size(); i_pfo++ )
+		{
+			double pfo_weight = ( int( PFOweightvec.at( i_pfo ) ) / 10000 ) / 1000.0;
+			streamlog_out(DEBUG0) << "Visible MCParticle linkWeight to PFO: " << PFOweightvec.at( i_pfo ) << " (Track: " << ( int( PFOweightvec.at( i_pfo ) ) % 10000 ) / 1000.0 << " , Cluster: " << ( int( PFOweightvec.at( i_pfo ) ) / 10000 ) / 1000.0 << ")" << std::endl;
+			ReconstructedParticle *testPFO = (ReconstructedParticle *) PFOvec.at( i_pfo );
+			if ( pfo_weight > maxweightMCPtoPFO )//&& track_weight >= m_MinWeightTrackMCTruthLink )
+			{
+				maxweightMCPtoPFO = pfo_weight;
+				iMCPtoPFOmax = i_pfo;
+				streamlog_out(DEBUG0) << "PFO at index: " << testPFO->id() << " has TYPE: " << testPFO->getType() << " and MCParticle to PFO link weight is " << pfo_weight << std::endl;
+			}
+		}
+	}
+	if ( iMCPtoPFOmax != -1 )
+	{
+		ReconstructedParticle *testPFO = (ReconstructedParticle *) PFOvec.at( iMCPtoPFOmax );
+		const EVENT::LCObjectVec& MCPvec = RecoMCParticleNav.getRelatedToObjects( testPFO );
+		const EVENT::FloatVec&	MCPweightvec = RecoMCParticleNav.getRelatedToWeights( testPFO );
+		for ( unsigned int i_mcp = 0; i_mcp < MCPvec.size(); i_mcp++ )
+		{
+			double mcp_weight = 0.0;
+			double trackWeight = ( int( MCPweightvec.at( i_mcp ) ) % 10000 ) / 1000.0;
+			double clusterWeight = ( int( MCPweightvec.at( i_mcp ) ) / 10000 ) / 1000.0;
+			if ( getChargedPFO && !getNeutralPFO )
+			{
+				mcp_weight = trackWeight;
+			}
+			else if ( getNeutralPFO && !getChargedPFO )
+			{
+				mcp_weight = clusterWeight;
+			}
+			else
+			{
+				mcp_weight = ( trackWeight > clusterWeight ? trackWeight : clusterWeight );
+			}
+			MCParticle *testMCP = (MCParticle *) MCPvec.at( i_mcp );
+			if ( mcp_weight > maxweightPFOtoMCP )//&& mcp_weight >= m_MinWeightTrackMCTruthLink )
+			{
+				maxweightPFOtoMCP = mcp_weight;
+				iPFOtoMCPmax = i_mcp;
+				streamlog_out(DEBUG0) << "MCParticle at index: " << testMCP->id() << " has PDG: " << testMCP->getPDG() << " and PFO to MCParticle link weight is " << mcp_weight << std::endl;
+			}
+		}
+		if ( iPFOtoMCPmax != -1 )
+		{
+			if ( MCPvec.at( iPFOtoMCPmax ) == mcParticle )
+			{
+				linkedPFO = testPFO;
+				foundlinkedPFO = true;
+			}
+		}
+	}
+	if( foundlinkedPFO )
+	{
+		streamlog_out(DEBUG1) << "Linked PFO to MCParticle found successfully " << std::endl;
+		weightPFOtoMCP = maxweightPFOtoMCP;
+		weightMCPtoPFO = maxweightMCPtoPFO;
+		return linkedPFO;
+	}
+	else
+	{
+		streamlog_out(DEBUG1) << "Couldn't Find a PFO linked to MCParticle" << std::endl;
+		return NULL;
+	}
+}
+
 
 void JetErrorAnalysis::check()
 {
