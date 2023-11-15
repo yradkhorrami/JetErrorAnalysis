@@ -33,6 +33,7 @@ m_nEvt(0),
 m_nRunSum(0),
 m_nEvtSum(0),
 m_nTrueJets(0),
+m_nTrueIsoLeps(0),
 m_nRecoJets(0),
 m_nIsoLeptons(0),
 m_pTFile(NULL),
@@ -214,9 +215,15 @@ void JetErrorAnalysis::init()
 		m_pTTree->Branch("run", &m_nRun, "run/I");
 		m_pTTree->Branch("event", &m_nEvt, "event/I");
 		m_pTTree->Branch("nTrueJets",&m_nTrueJets,"nTrueJets/I") ;
+		m_pTTree->Branch("nTrueIsoLeps",&m_nTrueIsoLeps,"nTrueIsoLeps/I") ;
 		m_pTTree->Branch("nRecoJets",&m_nRecoJets,"nRecoJets/I") ;
 		m_pTTree->Branch("nIsoLeptons",&m_nIsoLeptons,"nIsoLeptons/I") ;
 		m_pTTree->Branch("nSeenISRs",&m_nSeenISRs) ;
+		m_pTTree->Branch( "nSLDecayBHadron" , &m_nSLDecayBHadron , "nSLDecayBHadron/I" );
+		m_pTTree->Branch( "nSLDecayCHadron" , &m_nSLDecayCHadron , "nSLDecayCHadron/I" );
+		m_pTTree->Branch( "nSLDecayTauLepton" , &m_nSLDecayTauLepton , "nSLDecayTauLepton/I" );
+		m_pTTree->Branch( "nSLDecayTotal" , &m_nSLDecayTotal , "nSLDecayTotal/I" );
+		m_pTTree->Branch( "nCorrectedSLD" , &m_nCorrectedSLD , "nCorrectedSLD/I" );
 		m_pTTree->Branch("quarkPx",&m_quarkPx) ;
 		m_pTTree->Branch("quarkPy",&m_quarkPy) ;
 		m_pTTree->Branch("quarkPz",&m_quarkPz) ;
@@ -259,54 +266,128 @@ void JetErrorAnalysis::init()
 		m_pTTree->Branch("jetSigmaE2",&m_jetSigmaE2) ;
 		m_pTTree->Branch("jetSigmaTheta2",&m_jetSigmaTheta2) ;
 		m_pTTree->Branch("jetSigmaPhi2",&m_jetSigmaPhi2) ;
-		m_pTTree->Branch("ResidualPx",&m_ResidualPx) ;
-		m_pTTree->Branch("ResidualPy",&m_ResidualPy) ;
-		m_pTTree->Branch("ResidualPz",&m_ResidualPz) ;
-		m_pTTree->Branch("ResidualE",&m_ResidualE) ;
-		m_pTTree->Branch("ResidualTheta",&m_ResidualTheta) ;
-		m_pTTree->Branch("ResidualPhi",&m_ResidualPhi) ;
-		m_pTTree->Branch("NormalizedResidualPx",&m_NormalizedResidualPx) ;
-		m_pTTree->Branch("NormalizedResidualPy",&m_NormalizedResidualPy) ;
-		m_pTTree->Branch("NormalizedResidualPz",&m_NormalizedResidualPz) ;
-		m_pTTree->Branch("NormalizedResidualE",&m_NormalizedResidualE) ;
-		m_pTTree->Branch("NormalizedResidualTheta",&m_NormalizedResidualTheta) ;
-		m_pTTree->Branch("NormalizedResidualPhi",&m_NormalizedResidualPhi) ;
+		m_pTTree->Branch("ResidualJetPx",&m_ResidualJetPx) ;
+		m_pTTree->Branch("ResidualJetPy",&m_ResidualJetPy) ;
+		m_pTTree->Branch("ResidualJetPz",&m_ResidualJetPz) ;
+		m_pTTree->Branch("ResidualJetE",&m_ResidualJetE) ;
+		m_pTTree->Branch("ResidualJetTheta",&m_ResidualJetTheta) ;
+		m_pTTree->Branch("ResidualJetPhi",&m_ResidualJetPhi) ;
+		m_pTTree->Branch("NormalizedResidualJetPx",&m_NormalizedResidualJetPx) ;
+		m_pTTree->Branch("NormalizedResidualJetPy",&m_NormalizedResidualJetPy) ;
+		m_pTTree->Branch("NormalizedResidualJetPz",&m_NormalizedResidualJetPz) ;
+		m_pTTree->Branch("NormalizedResidualJetE",&m_NormalizedResidualJetE) ;
+		m_pTTree->Branch("NormalizedResidualJetTheta",&m_NormalizedResidualJetTheta) ;
+		m_pTTree->Branch("NormalizedResidualJetPhi",&m_NormalizedResidualJetPhi) ;
 		m_pTTree->Branch("trueJetType",&m_trueJetType) ;
 		m_pTTree->Branch("trueJetFlavour",&m_trueJetFlavour) ;
 		m_pTTree->Branch("recoJetFlavour",&m_recoJetFlavour) ;
-		h_ResidualPx = new TH1F( "h_ResidualPx" , "; ^{}_{}p_{x,jet}^{REC} - p_{x,jet}^{TRUE} [GeV]; Normalized #jet / 0.1 GeV" , 400 , -20.0 , 20.0 );
-		h_ResidualPy = new TH1F( "h_ResidualPy" , "; ^{}_{}p_{y,jet}^{REC} - p_{y,jet}^{TRUE} [GeV]; Normalized #jet / 0.1 GeV" , 400 , -20.0 , 20.0 );
-		h_ResidualPz = new TH1F( "h_ResidualPz" , "; ^{}_{}p_{z,jet}^{REC} - p_{z,jet}^{TRUE} [GeV]; Normalized #jet / 0.1 GeV" , 400 , -20.0 , 20.0 );
-		h_ResidualE = new TH1F( "h_ResidualE" , "; ^{}_{}E_{jet}^{REC} - E_{jet}^{TRUE} [GeV]; Normalized #jet / 0.1 GeV" , 400 , -20.0 , 20.0 );
-		h_ResidualTheta = new TH1F( "h_ResidualTheta" , "; ^{}_{}#theta_{jet}^{REC} - #theta_{jet}^{TRUE} [rad]; Normalized #jet / 0.01" , 200 * 3.14159265 , -3.14159265 , 3.14159265 );
-		h_ResidualPhi = new TH1F( "h_ResidualPhi" , "; ^{}_{}#phi_{jet}^{REC} - #phi_{jet}^{TRUE} [rad]; Normalized #jet / 0.01" , 200 * 3.14159265 , -3.14159265 , 3.14159265 );
-		h_NormalizedResidualPx = new TH1F( "h_NormalizedResidualPx" , "; (^{}_{}p_{x,jet}^{REC} - p_{x,jet}^{TRUE}) / #sigma_{p_{x,jet}}; Normalized #jet / 0.1" , 200 , -10.0 , 10.0 );
-		h_NormalizedResidualPy = new TH1F( "h_NormalizedResidualPy" , "; (^{}_{}p_{y,jet}^{REC} - p_{y,jet}^{TRUE}) / #sigma_{p_{y,jet}}; Normalized #jet / 0.1" , 200 , -10.0 , 10.0 );
-		h_NormalizedResidualPz = new TH1F( "h_NormalizedResidualPz" , "; (^{}_{}p_{z,jet}^{REC} - p_{z,jet}^{TRUE}) / #sigma_{p_{z,jet}}; Normalized #jet / 0.1" , 200 , -10.0 , 10.0 );
-		h_NormalizedResidualE = new TH1F( "h_NormalizedResidualE" , "; (^{}_{}E_{jet}^{REC} - E_{jet}^{TRUE}) / #sigma_{E_{jet}}; Normalized #jet / 0.1" , 200 , -10.0 , 10.0 );
-		h_NormalizedResidualTheta = new TH1F( "h_NormalizedResidualTheta" , "; (^{}_{}#theta_{jet}^{REC} - #theta_{jet}^{TRUE}) / #sigma_{#theta_{jet}}; Normalized #jet / 0.1" , 200 , -10.0 , 10.0 );
-		h_NormalizedResidualPhi = new TH1F( "h_NormalizedResidualPhi" , "; (^{}_{}#phi_{jet}^{REC} - #phi_{jet}^{TRUE}) / #sigma_{#phi_{jet}}; Normalized #jet / 0.1" , 200 , -10.0 , 10.0 );
-		h_ResidualPxSeen = new TH1F( "h_ResidualPxSeen" , "; ^{}_{}p_{x,jet}^{REC} - p_{x,jet}^{TRUE} [GeV]; Normalized #jet / 0.1 GeV" , 400 , -20.0 , 20.0 );
-		h_ResidualPySeen = new TH1F( "h_ResidualPySeen" , "; ^{}_{}p_{y,jet}^{REC} - p_{y,jet}^{TRUE} [GeV]; Normalized #jet / 0.1 GeV" , 400 , -20.0 , 20.0 );
-		h_ResidualPzSeen = new TH1F( "h_ResidualPzSeen" , "; ^{}_{}p_{z,jet}^{REC} - p_{z,jet}^{TRUE} [GeV]; Normalized #jet / 0.1 GeV" , 400 , -20.0 , 20.0 );
-		h_ResidualESeen = new TH1F( "h_ResidualESeen" , "; ^{}_{}E_{jet}^{REC} - E_{jet}^{TRUE} [GeV]; Normalized #jet / 0.1 GeV" , 400 , -20.0 , 20.0 );
-		h_ResidualThetaSeen = new TH1F( "h_ResidualThetaSeen" , "; ^{}_{}#theta_{jet}^{REC} - #theta_{jet}^{TRUE} [rad]; Normalized #jet / 0.01" , 200 * 3.14159265 , -3.14159265 , 3.14159265 );
-		h_ResidualPhiSeen = new TH1F( "h_ResidualPhiSeen" , "; ^{}_{}#phi_{jet}^{REC} - #phi_{jet}^{TRUE} [rad]; Normalized #jet / 0.01" , 200 * 3.14159265 , -3.14159265 , 3.14159265 );
-		h_NormalizedResidualPxSeen = new TH1F( "h_NormalizedResidualPxSeen" , "; (^{}_{}p_{x,jet}^{REC} - p_{x,jet}^{TRUE}) / #sigma_{p_{x,jet}}; Normalized #jet / 0.1" , 200 , -10.0 , 10.0 );
-		h_NormalizedResidualPySeen = new TH1F( "h_NormalizedResidualPySeen" , "; (^{}_{}p_{y,jet}^{REC} - p_{y,jet}^{TRUE}) / #sigma_{p_{y,jet}}; Normalized #jet / 0.1" , 200 , -10.0 , 10.0 );
-		h_NormalizedResidualPzSeen = new TH1F( "h_NormalizedResidualPzSeen" , "; (^{}_{}p_{z,jet}^{REC} - p_{z,jet}^{TRUE}) / #sigma_{p_{z,jet}}; Normalized #jet / 0.1" , 200 , -10.0 , 10.0 );
-		h_NormalizedResidualESeen = new TH1F( "h_NormalizedResidualESeen" , "; (^{}_{}E_{jet}^{REC} - E_{jet}^{TRUE}) / #sigma_{E_{jet}}; Normalized #jet / 0.1" , 200 , -10.0 , 10.0 );
-		h_NormalizedResidualThetaSeen = new TH1F( "h_NormalizedResidualThetaSeen" , "; (^{}_{}#theta_{jet}^{REC} - #theta_{jet}^{TRUE}) / #sigma_{#theta_{jet}}; Normalized #jet / 0.1" , 200 , -10.0 , 10.0 );
-		h_NormalizedResidualPhiSeen = new TH1F( "h_NormalizedResidualPhiSeen" , "; (^{}_{}#phi_{jet}^{REC} - #phi_{jet}^{TRUE}) / #sigma_{#phi_{jet}}; Normalized #jet / 0.1" , 200 , -10.0 , 10.0 );
+		h_ResidualJetPx = new TH1F( "h_ResidualJetPx" , "; ^{}_{}p_{x,jet}^{REC} - p_{x,jet}^{TRUE} [GeV]; Normalized #jet / 0.1 GeV" , 440 , -22.0 , 22.0 );
+		h_ResidualJetPy = new TH1F( "h_ResidualJetPy" , "; ^{}_{}p_{y,jet}^{REC} - p_{y,jet}^{TRUE} [GeV]; Normalized #jet / 0.1 GeV" , 440 , -22.0 , 22.0 );
+		h_ResidualJetPz = new TH1F( "h_ResidualJetPz" , "; ^{}_{}p_{z,jet}^{REC} - p_{z,jet}^{TRUE} [GeV]; Normalized #jet / 0.1 GeV" , 440 , -22.0 , 22.0 );
+		h_ResidualJetE = new TH1F( "h_ResidualJetE" , "; ^{}_{}E_{jet}^{REC} - E_{jet}^{TRUE} [GeV]; Normalized #jet / 0.1 GeV" , 440 , -22.0 , 22.0 );
+		h_ResidualJetTheta = new TH1F( "h_ResidualJetTheta" , "; ^{}_{}#theta_{jet}^{REC} - #theta_{jet}^{TRUE} [rad]; Normalized #jet / 0.001" , 2000 * 3.15 , -3.15 , 3.15 );
+		h_ResidualJetPhi = new TH1F( "h_ResidualJetPhi" , "; ^{}_{}#phi_{jet}^{REC} - #phi_{jet}^{TRUE} [rad]; Normalized #jet / 0.001" , 2000 * 3.15 , -3.15 , 3.15 );
+		h_NormalizedResidualJetPx = new TH1F( "h_NormalizedResidualJetPx" , "; (^{}_{}p_{x,jet}^{REC} - p_{x,jet}^{TRUE}) / #sigma_{p_{x,jet}}; Normalized #jet / 0.1" , 220 , -11.0 , 11.0 );
+		h_NormalizedResidualJetPy = new TH1F( "h_NormalizedResidualJetPy" , "; (^{}_{}p_{y,jet}^{REC} - p_{y,jet}^{TRUE}) / #sigma_{p_{y,jet}}; Normalized #jet / 0.1" , 220 , -11.0 , 11.0 );
+		h_NormalizedResidualJetPz = new TH1F( "h_NormalizedResidualJetPz" , "; (^{}_{}p_{z,jet}^{REC} - p_{z,jet}^{TRUE}) / #sigma_{p_{z,jet}}; Normalized #jet / 0.1" , 220 , -11.0 , 11.0 );
+		h_NormalizedResidualJetE = new TH1F( "h_NormalizedResidualJetE" , "; (^{}_{}E_{jet}^{REC} - E_{jet}^{TRUE}) / #sigma_{E_{jet}}; Normalized #jet / 0.1" , 220 , -11.0 , 11.0 );
+		h_NormalizedResidualJetTheta = new TH1F( "h_NormalizedResidualJetTheta" , "; (^{}_{}#theta_{jet}^{REC} - #theta_{jet}^{TRUE}) / #sigma_{#theta_{jet}}; Normalized #jet / 0.1" , 220 , -11.0 , 11.0 );
+		h_NormalizedResidualJetPhi = new TH1F( "h_NormalizedResidualJetPhi" , "; (^{}_{}#phi_{jet}^{REC} - #phi_{jet}^{TRUE}) / #sigma_{#phi_{jet}}; Normalized #jet / 0.1" , 220 , -11.0 , 11.0 );
+		h_ResidualJetPxSeen = new TH1F( "h_ResidualJetPxSeen" , "; ^{}_{}p_{x,jet}^{REC} - p_{x,jet}^{TRUE} [GeV]; Normalized #jet / 0.1 GeV" , 440 , -22.0 , 22.0 );
+		h_ResidualJetPySeen = new TH1F( "h_ResidualJetPySeen" , "; ^{}_{}p_{y,jet}^{REC} - p_{y,jet}^{TRUE} [GeV]; Normalized #jet / 0.1 GeV" , 440 , -22.0 , 22.0 );
+		h_ResidualJetPzSeen = new TH1F( "h_ResidualJetPzSeen" , "; ^{}_{}p_{z,jet}^{REC} - p_{z,jet}^{TRUE} [GeV]; Normalized #jet / 0.1 GeV" , 440 , -22.0 , 22.0 );
+		h_ResidualJetESeen = new TH1F( "h_ResidualJetESeen" , "; ^{}_{}E_{jet}^{REC} - E_{jet}^{TRUE} [GeV]; Normalized #jet / 0.1 GeV" , 440 , -22.0 , 22.0 );
+		h_ResidualJetThetaSeen = new TH1F( "h_ResidualJetThetaSeen" , "; ^{}_{}#theta_{jet}^{REC} - #theta_{jet}^{TRUE} [rad]; Normalized #jet / 0.001" , 2000 * 3.15 , -3.15 , 3.15 );
+		h_ResidualJetPhiSeen = new TH1F( "h_ResidualJetPhiSeen" , "; ^{}_{}#phi_{jet}^{REC} - #phi_{jet}^{TRUE} [rad]; Normalized #jet / 0.001" , 2000 * 3.15 , -3.15 , 3.15 );
+		h_NormalizedResidualJetPxSeen = new TH1F( "h_NormalizedResidualJetPxSeen" , "; (^{}_{}p_{x,jet}^{REC} - p_{x,jet}^{TRUE}) / #sigma_{p_{x,jet}}; Normalized #jet / 0.1" , 220 , -11.0 , 11.0 );
+		h_NormalizedResidualJetPySeen = new TH1F( "h_NormalizedResidualJetPySeen" , "; (^{}_{}p_{y,jet}^{REC} - p_{y,jet}^{TRUE}) / #sigma_{p_{y,jet}}; Normalized #jet / 0.1" , 220 , -11.0 , 11.0 );
+		h_NormalizedResidualJetPzSeen = new TH1F( "h_NormalizedResidualJetPzSeen" , "; (^{}_{}p_{z,jet}^{REC} - p_{z,jet}^{TRUE}) / #sigma_{p_{z,jet}}; Normalized #jet / 0.1" , 220 , -11.0 , 11.0 );
+		h_NormalizedResidualJetESeen = new TH1F( "h_NormalizedResidualJetESeen" , "; (^{}_{}E_{jet}^{REC} - E_{jet}^{TRUE}) / #sigma_{E_{jet}}; Normalized #jet / 0.1" , 220 , -11.0 , 11.0 );
+		h_NormalizedResidualJetThetaSeen = new TH1F( "h_NormalizedResidualJetThetaSeen" , "; (^{}_{}#theta_{jet}^{REC} - #theta_{jet}^{TRUE}) / #sigma_{#theta_{jet}}; Normalized #jet / 0.1" , 220 , -11.0 , 11.0 );
+		h_NormalizedResidualJetPhiSeen = new TH1F( "h_NormalizedResidualJetPhiSeen" , "; (^{}_{}#phi_{jet}^{REC} - #phi_{jet}^{TRUE}) / #sigma_{#phi_{jet}}; Normalized #jet / 0.1" , 220 , -11.0 , 11.0 );
+
+		m_pTTree->Branch("trueIsoLepPx",&m_trueIsoLepPx) ;
+		m_pTTree->Branch("trueIsoLepPy",&m_trueIsoLepPy) ;
+		m_pTTree->Branch("trueIsoLepPz",&m_trueIsoLepPz) ;
+		m_pTTree->Branch("trueIsoLepE",&m_trueIsoLepE) ;
+		m_pTTree->Branch("trueIsoLepTheta",&m_trueIsoLepTheta) ;
+		m_pTTree->Branch("trueIsoLepPhi",&m_trueIsoLepPhi) ;
+		m_pTTree->Branch("seenIsoLepPx",&m_seenIsoLepPx) ;
+		m_pTTree->Branch("seenIsoLepPy",&m_seenIsoLepPy) ;
+		m_pTTree->Branch("seenIsoLepPz",&m_seenIsoLepPz) ;
+		m_pTTree->Branch("seenIsoLepE",&m_seenIsoLepE) ;
+		m_pTTree->Branch("seenIsoLepTheta",&m_seenIsoLepTheta) ;
+		m_pTTree->Branch("seenIsoLepPhi",&m_seenIsoLepPhi) ;
+		m_pTTree->Branch("recoIsoLepPx",&m_recoIsoLepPx) ;
+		m_pTTree->Branch("recoIsoLepPy",&m_recoIsoLepPy) ;
+		m_pTTree->Branch("recoIsoLepPz",&m_recoIsoLepPz) ;
+		m_pTTree->Branch("recoIsoLepE",&m_recoIsoLepE) ;
+		m_pTTree->Branch("recoIsoLepTheta",&m_recoIsoLepTheta) ;
+		m_pTTree->Branch("recoIsoLepPhi",&m_recoIsoLepPhi) ;
+		m_pTTree->Branch("isoLepSigmaPx2",&m_isoLepSigmaPx2) ;
+		m_pTTree->Branch("isoLepSigmaPxPy",&m_isoLepSigmaPxPy) ;
+		m_pTTree->Branch("isoLepSigmaPy2",&m_isoLepSigmaPy2) ;
+		m_pTTree->Branch("isoLepSigmaPxPz",&m_isoLepSigmaPxPz) ;
+		m_pTTree->Branch("isoLepSigmaPyPz",&m_isoLepSigmaPyPz) ;
+		m_pTTree->Branch("isoLepSigmaPz2",&m_isoLepSigmaPz2) ;
+		m_pTTree->Branch("isoLepSigmaPxE",&m_isoLepSigmaPxE) ;
+		m_pTTree->Branch("isoLepSigmaPyE",&m_isoLepSigmaPyE) ;
+		m_pTTree->Branch("isoLepSigmaPzE",&m_isoLepSigmaPzE) ;
+		m_pTTree->Branch("isoLepSigmaE2",&m_isoLepSigmaE2) ;
+		m_pTTree->Branch("isoLepSigmaTheta2",&m_isoLepSigmaTheta2) ;
+		m_pTTree->Branch("isoLepSigmaPhi2",&m_isoLepSigmaPhi2) ;
+		m_pTTree->Branch("ResidualIsoLepPx",&m_ResidualIsoLepPx) ;
+		m_pTTree->Branch("ResidualIsoLepPy",&m_ResidualIsoLepPy) ;
+		m_pTTree->Branch("ResidualIsoLepPz",&m_ResidualIsoLepPz) ;
+		m_pTTree->Branch("ResidualIsoLepE",&m_ResidualIsoLepE) ;
+		m_pTTree->Branch("ResidualIsoLepTheta",&m_ResidualIsoLepTheta) ;
+		m_pTTree->Branch("ResidualIsoLepPhi",&m_ResidualIsoLepPhi) ;
+		m_pTTree->Branch("NormalizedResidualIsoLepPx",&m_NormalizedResidualIsoLepPx) ;
+		m_pTTree->Branch("NormalizedResidualIsoLepPy",&m_NormalizedResidualIsoLepPy) ;
+		m_pTTree->Branch("NormalizedResidualIsoLepPz",&m_NormalizedResidualIsoLepPz) ;
+		m_pTTree->Branch("NormalizedResidualIsoLepE",&m_NormalizedResidualIsoLepE) ;
+		m_pTTree->Branch("NormalizedResidualIsoLepTheta",&m_NormalizedResidualIsoLepTheta) ;
+		m_pTTree->Branch("NormalizedResidualIsoLepPhi",&m_NormalizedResidualIsoLepPhi) ;
+		m_pTTree->Branch("trueIsoLepType",&m_trueIsoLepType) ;
+		h_ResidualIsoLepPx = new TH1F( "h_ResidualIsoLepPx" , "; ^{}_{}p_{x,#font[12]{l}^{#pm}}^{REC} - p_{x,#font[12]{l}^{#pm}}^{TRUE} [GeV]; Normalized ##font[12]{l}^{#pm} / 0.1 GeV" , 440 , -22.0 , 22.0 );
+		h_ResidualIsoLepPy = new TH1F( "h_ResidualIsoLepPy" , "; ^{}_{}p_{y,#font[12]{l}^{#pm}}^{REC} - p_{y,#font[12]{l}^{#pm}}^{TRUE} [GeV]; Normalized ##font[12]{l}^{#pm} / 0.1 GeV" , 440 , -22.0 , 22.0 );
+		h_ResidualIsoLepPz = new TH1F( "h_ResidualIsoLepPz" , "; ^{}_{}p_{z,#font[12]{l}^{#pm}}^{REC} - p_{z,#font[12]{l}^{#pm}}^{TRUE} [GeV]; Normalized ##font[12]{l}^{#pm} / 0.1 GeV" , 440 , -22.0 , 22.0 );
+		h_ResidualIsoLepE = new TH1F( "h_ResidualIsoLepE" , "; ^{}_{}E_{#font[12]{l}^{#pm}}^{REC} - E_{#font[12]{l}^{#pm}}^{TRUE} [GeV]; Normalized ##font[12]{l}^{#pm} / 0.1 GeV" , 440 , -22.0 , 22.0 );
+		h_ResidualIsoLepTheta = new TH1F( "h_ResidualIsoLepTheta" , "; ^{}_{}#theta_{#font[12]{l}^{#pm}}^{REC} - #theta_{#font[12]{l}^{#pm}}^{TRUE} [rad]; Normalized ##font[12]{l}^{#pm} / 0.001" , 2000 * 3.15 , -3.15 , 3.15 );
+		h_ResidualIsoLepPhi = new TH1F( "h_ResidualIsoLepPhi" , "; ^{}_{}#phi_{#font[12]{l}^{#pm}}^{REC} - #phi_{#font[12]{l}^{#pm}}^{TRUE} [rad]; Normalized ##font[12]{l}^{#pm} / 0.001" , 2000 * 3.15 , -3.15 , 3.15 );
+		h_NormalizedResidualIsoLepPx = new TH1F( "h_NormalizedResidualIsoLepPx" , "; (^{}_{}p_{x,#font[12]{l}^{#pm}}^{REC} - p_{x,#font[12]{l}^{#pm}}^{TRUE}) / #sigma_{p_{x,#font[12]{l}^{#pm}}}; Normalized ##font[12]{l}^{#pm} / 0.1" , 220 , -11.0 , 11.0 );
+		h_NormalizedResidualIsoLepPy = new TH1F( "h_NormalizedResidualIsoLepPy" , "; (^{}_{}p_{y,#font[12]{l}^{#pm}}^{REC} - p_{y,#font[12]{l}^{#pm}}^{TRUE}) / #sigma_{p_{y,#font[12]{l}^{#pm}}}; Normalized ##font[12]{l}^{#pm} / 0.1" , 220 , -11.0 , 11.0 );
+		h_NormalizedResidualIsoLepPz = new TH1F( "h_NormalizedResidualIsoLepPz" , "; (^{}_{}p_{z,#font[12]{l}^{#pm}}^{REC} - p_{z,#font[12]{l}^{#pm}}^{TRUE}) / #sigma_{p_{z,#font[12]{l}^{#pm}}}; Normalized ##font[12]{l}^{#pm} / 0.1" , 220 , -11.0 , 11.0 );
+		h_NormalizedResidualIsoLepE = new TH1F( "h_NormalizedResidualIsoLepE" , "; (^{}_{}E_{#font[12]{l}^{#pm}}^{REC} - E_{#font[12]{l}^{#pm}}^{TRUE}) / #sigma_{E_{#font[12]{l}^{#pm}}}; Normalized ##font[12]{l}^{#pm} / 0.1" , 220 , -11.0 , 11.0 );
+		h_NormalizedResidualIsoLepTheta = new TH1F( "h_NormalizedResidualIsoLepTheta" , "; (^{}_{}#theta_{#font[12]{l}^{#pm}}^{REC} - #theta_{#font[12]{l}^{#pm}}^{TRUE}) / #sigma_{#theta_{#font[12]{l}^{#pm}}}; Normalized ##font[12]{l}^{#pm} / 0.1" , 220 , -11.0 , 11.0 );
+		h_NormalizedResidualIsoLepPhi = new TH1F( "h_NormalizedResidualIsoLepPhi" , "; (^{}_{}#phi_{#font[12]{l}^{#pm}}^{REC} - #phi_{#font[12]{l}^{#pm}}^{TRUE}) / #sigma_{#phi_{#font[12]{l}^{#pm}}}; Normalized ##font[12]{l}^{#pm} / 0.1" , 220 , -11.0 , 11.0 );
+		h_ResidualIsoLepPxSeen = new TH1F( "h_ResidualIsoLepPxSeen" , "; ^{}_{}p_{x,#font[12]{l}^{#pm}}^{REC} - p_{x,#font[12]{l}^{#pm}}^{TRUE} [GeV]; Normalized ##font[12]{l}^{#pm} / 0.1 GeV" , 440 , -22.0 , 22.0 );
+		h_ResidualIsoLepPySeen = new TH1F( "h_ResidualIsoLepPySeen" , "; ^{}_{}p_{y,#font[12]{l}^{#pm}}^{REC} - p_{y,#font[12]{l}^{#pm}}^{TRUE} [GeV]; Normalized ##font[12]{l}^{#pm} / 0.1 GeV" , 440 , -22.0 , 22.0 );
+		h_ResidualIsoLepPzSeen = new TH1F( "h_ResidualIsoLepPzSeen" , "; ^{}_{}p_{z,#font[12]{l}^{#pm}}^{REC} - p_{z,#font[12]{l}^{#pm}}^{TRUE} [GeV]; Normalized ##font[12]{l}^{#pm} / 0.1 GeV" , 440 , -22.0 , 22.0 );
+		h_ResidualIsoLepESeen = new TH1F( "h_ResidualIsoLepESeen" , "; ^{}_{}E_{#font[12]{l}^{#pm}}^{REC} - E_{#font[12]{l}^{#pm}}^{TRUE} [GeV]; Normalized ##font[12]{l}^{#pm} / 0.1 GeV" , 440 , -22.0 , 22.0 );
+		h_ResidualIsoLepThetaSeen = new TH1F( "h_ResidualIsoLepThetaSeen" , "; ^{}_{}#theta_{#font[12]{l}^{#pm}}^{REC} - #theta_{#font[12]{l}^{#pm}}^{TRUE} [rad]; Normalized ##font[12]{l}^{#pm} / 0.001" , 2000 * 3.15 , -3.15 , 3.15 );
+		h_ResidualIsoLepPhiSeen = new TH1F( "h_ResidualIsoLepPhiSeen" , "; ^{}_{}#phi_{#font[12]{l}^{#pm}}^{REC} - #phi_{#font[12]{l}^{#pm}}^{TRUE} [rad]; Normalized ##font[12]{l}^{#pm} / 0.001" , 2000 * 3.15 , -3.15 , 3.15 );
+		h_NormalizedResidualIsoLepPxSeen = new TH1F( "h_NormalizedResidualIsoLepPxSeen" , "; (^{}_{}p_{x,#font[12]{l}^{#pm}}^{REC} - p_{x,#font[12]{l}^{#pm}}^{TRUE}) / #sigma_{p_{x,#font[12]{l}^{#pm}}}; Normalized ##font[12]{l}^{#pm} / 0.1" , 220 , -11.0 , 11.0 );
+		h_NormalizedResidualIsoLepPySeen = new TH1F( "h_NormalizedResidualIsoLepPySeen" , "; (^{}_{}p_{y,#font[12]{l}^{#pm}}^{REC} - p_{y,#font[12]{l}^{#pm}}^{TRUE}) / #sigma_{p_{y,#font[12]{l}^{#pm}}}; Normalized ##font[12]{l}^{#pm} / 0.1" , 220 , -11.0 , 11.0 );
+		h_NormalizedResidualIsoLepPzSeen = new TH1F( "h_NormalizedResidualIsoLepPzSeen" , "; (^{}_{}p_{z,#font[12]{l}^{#pm}}^{REC} - p_{z,#font[12]{l}^{#pm}}^{TRUE}) / #sigma_{p_{z,#font[12]{l}^{#pm}}}; Normalized ##font[12]{l}^{#pm} / 0.1" , 220 , -11.0 , 11.0 );
+		h_NormalizedResidualIsoLepESeen = new TH1F( "h_NormalizedResidualIsoLepESeen" , "; (^{}_{}E_{#font[12]{l}^{#pm}}^{REC} - E_{#font[12]{l}^{#pm}}^{TRUE}) / #sigma_{E_{#font[12]{l}^{#pm}}}; Normalized ##font[12]{l}^{#pm} / 0.1" , 220 , -11.0 , 11.0 );
+		h_NormalizedResidualIsoLepThetaSeen = new TH1F( "h_NormalizedResidualIsoLepThetaSeen" , "; (^{}_{}#theta_{#font[12]{l}^{#pm}}^{REC} - #theta_{#font[12]{l}^{#pm}}^{TRUE}) / #sigma_{#theta_{#font[12]{l}^{#pm}}}; Normalized ##font[12]{l}^{#pm} / 0.1" , 220 , -11.0 , 11.0 );
+		h_NormalizedResidualIsoLepPhiSeen = new TH1F( "h_NormalizedResidualIsoLepPhiSeen" , "; (^{}_{}#phi_{#font[12]{l}^{#pm}}^{REC} - #phi_{#font[12]{l}^{#pm}}^{TRUE}) / #sigma_{#phi_{#font[12]{l}^{#pm}}}; Normalized ##font[12]{l}^{#pm} / 0.1" , 220 , -11.0 , 11.0 );
 	}
 }
 
 void JetErrorAnalysis::Clear()
 {
 	m_nTrueJets = 0;
+	m_nTrueIsoLeps = 0;
 	m_nRecoJets = 0;
 	m_nIsoLeptons = 0;
 	m_nSeenISRs.clear();
+	m_nSLDecayBHadron = 0;
+	m_nSLDecayCHadron = 0;
+	m_nSLDecayTauLepton = 0;
+	m_nSLDecayTotal = 0;
+	m_nCorrectedSLD = 0;
 	m_quarkPx.clear();
 	m_quarkPy.clear();
 	m_quarkPz.clear();
@@ -349,21 +430,65 @@ void JetErrorAnalysis::Clear()
 	m_jetSigmaE2.clear();
 	m_jetSigmaTheta2.clear();
 	m_jetSigmaPhi2.clear();
-	m_ResidualPx.clear();
-	m_ResidualPy.clear();
-	m_ResidualPz.clear();
-	m_ResidualE.clear();
-	m_ResidualTheta.clear();
-	m_ResidualPhi.clear();
-	m_NormalizedResidualPx.clear();
-	m_NormalizedResidualPy.clear();
-	m_NormalizedResidualPz.clear();
-	m_NormalizedResidualE.clear();
-	m_NormalizedResidualTheta.clear();
-	m_NormalizedResidualPhi.clear();
+	m_ResidualJetPx.clear();
+	m_ResidualJetPy.clear();
+	m_ResidualJetPz.clear();
+	m_ResidualJetE.clear();
+	m_ResidualJetTheta.clear();
+	m_ResidualJetPhi.clear();
+	m_NormalizedResidualJetPx.clear();
+	m_NormalizedResidualJetPy.clear();
+	m_NormalizedResidualJetPz.clear();
+	m_NormalizedResidualJetE.clear();
+	m_NormalizedResidualJetTheta.clear();
+	m_NormalizedResidualJetPhi.clear();
 	m_trueJetType.clear();
 	m_trueJetFlavour.clear();
 	m_recoJetFlavour.clear();
+
+	m_trueIsoLepPx.clear();
+	m_trueIsoLepPy.clear();
+	m_trueIsoLepPz.clear();
+	m_trueIsoLepE.clear();
+	m_trueIsoLepTheta.clear();
+	m_trueIsoLepPhi.clear();
+	m_seenIsoLepPx.clear();
+	m_seenIsoLepPy.clear();
+	m_seenIsoLepPz.clear();
+	m_seenIsoLepE.clear();
+	m_seenIsoLepTheta.clear();
+	m_seenIsoLepPhi.clear();
+	m_recoIsoLepPx.clear();
+	m_recoIsoLepPy.clear();
+	m_recoIsoLepPz.clear();
+	m_recoIsoLepE.clear();
+	m_recoIsoLepTheta.clear();
+	m_recoIsoLepPhi.clear();
+	m_isoLepSigmaPx2.clear();
+	m_isoLepSigmaPxPy.clear();
+	m_isoLepSigmaPy2.clear();
+	m_isoLepSigmaPxPz.clear();
+	m_isoLepSigmaPyPz.clear();
+	m_isoLepSigmaPz2.clear();
+	m_isoLepSigmaPxE.clear();
+	m_isoLepSigmaPyE.clear();
+	m_isoLepSigmaPzE.clear();
+	m_isoLepSigmaE2.clear();
+	m_isoLepSigmaTheta2.clear();
+	m_isoLepSigmaPhi2.clear();
+	m_ResidualIsoLepPx.clear();
+	m_ResidualIsoLepPy.clear();
+	m_ResidualIsoLepPz.clear();
+	m_ResidualIsoLepE.clear();
+	m_ResidualIsoLepTheta.clear();
+	m_ResidualIsoLepPhi.clear();
+	m_NormalizedResidualIsoLepPx.clear();
+	m_NormalizedResidualIsoLepPy.clear();
+	m_NormalizedResidualIsoLepPz.clear();
+	m_NormalizedResidualIsoLepE.clear();
+	m_NormalizedResidualIsoLepTheta.clear();
+	m_NormalizedResidualIsoLepPhi.clear();
+	m_trueIsoLepType.clear();
 }
 
 void JetErrorAnalysis::processRunHeader()
@@ -395,6 +520,12 @@ void JetErrorAnalysis::processEvent( LCEvent* pLCEvent)
 		recoJetCol		= pLCEvent->getCollection( m_recoJetCollectionName );
 		m_nRecoJets = recoJetCol->getNumberOfElements();
 		streamlog_out(DEBUG6) << "	Collection " << m_recoJetCollectionName << " was red with " << m_nRecoJets << " elements" << std::endl;
+		m_nSLDecayBHadron = recoJetCol->getParameters().getIntVal( "nBHadronSLD_found" );
+		m_nSLDecayCHadron = recoJetCol->getParameters().getIntVal( "nCHadronSLD_found" );
+		m_nSLDecayTauLepton = recoJetCol->getParameters().getIntVal( "nTauLeptonSLD_found" );
+		m_nSLDecayTotal = recoJetCol->getParameters().getIntVal( "nTotalSLD_found" );
+		m_nCorrectedSLD = recoJetCol->getParameters().getIntVal( "nSolvedSLD" );
+
 		streamlog_out(DEBUG6) << "	Reading collection " << m_inputIsolatedleptonCollection << std::endl;
 		isoLepCol		= pLCEvent->getCollection( m_inputIsolatedleptonCollection );
 		m_nIsoLeptons = isoLepCol->getNumberOfElements();
@@ -708,9 +839,9 @@ void JetErrorAnalysis::processEvent( LCEvent* pLCEvent)
 			double jetPxResidual , jetPyResidual , jetPzResidual , jetEnergyResidual , jetThetaResidual , jetPhiResidual;
 			double jetPxResidualSeen , jetPyResidualSeen , jetPzResidualSeen , jetEnergyResidualSeen , jetThetaResidualSeen , jetPhiResidualSeen;
 			double jetSigmaE , jetSigmaTheta , jetSigmaPhi;
-			getJetResiduals( jetTrueMomentum , jetTrueEnergy , jetRecoMomentum , jetRecoEnergy , jetPxResidual , jetPyResidual , jetPzResidual , jetEnergyResidual , jetThetaResidual , jetPhiResidual );
-			getJetResiduals( jetTrueSeenMomentum , jetTrueSeenEnergy , jetRecoMomentum , jetRecoEnergy , jetPxResidualSeen , jetPyResidualSeen , jetPzResidualSeen , jetEnergyResidualSeen , jetThetaResidualSeen , jetPhiResidualSeen );
-			getJetResolutions( TLorentzVector( jetRecoMomentum , jetRecoEnergy ) , recoJetVector[ i_jet ]->getCovMatrix() , jetSigmaE , jetSigmaTheta , jetSigmaPhi );
+			getResiduals( jetTrueMomentum , jetTrueEnergy , jetRecoMomentum , jetRecoEnergy , jetPxResidual , jetPyResidual , jetPzResidual , jetEnergyResidual , jetThetaResidual , jetPhiResidual );
+			getResiduals( jetTrueSeenMomentum , jetTrueSeenEnergy , jetRecoMomentum , jetRecoEnergy , jetPxResidualSeen , jetPyResidualSeen , jetPzResidualSeen , jetEnergyResidualSeen , jetThetaResidualSeen , jetPhiResidualSeen );
+			getResolutions( TLorentzVector( jetRecoMomentum , jetRecoEnergy ) , recoJetVector[ i_jet ]->getCovMatrix() , jetSigmaE , jetSigmaTheta , jetSigmaPhi );
 			if ( m_fillRootTree )
 			{
 				m_quarkPx.push_back( quarkMomentum.Px() );		m_quarkPy.push_back( quarkMomentum.Py() );			m_quarkPz.push_back( quarkMomentum.Pz() );
@@ -735,44 +866,187 @@ void JetErrorAnalysis::processEvent( LCEvent* pLCEvent)
 				m_jetSigmaE2.push_back( recoJetVector[ i_jet ]->getCovMatrix()[ 9 ] );
 				m_jetSigmaTheta2.push_back( pow( jetSigmaTheta , 2 ) );
 				m_jetSigmaPhi2.push_back( pow( jetSigmaPhi , 2 ) );
-				m_ResidualPx.push_back( jetPxResidual ); h_ResidualPx->Fill( jetPxResidual );
-				m_ResidualPy.push_back( jetPyResidual ); h_ResidualPy->Fill( jetPyResidual );
-				m_ResidualPz.push_back( jetPzResidual ); h_ResidualPz->Fill( jetPzResidual );
-				m_ResidualE.push_back( jetEnergyResidual ); h_ResidualE->Fill( jetEnergyResidual );
-				m_ResidualTheta.push_back( jetThetaResidual ); h_ResidualTheta->Fill( jetThetaResidual );
-				m_ResidualPhi.push_back( jetPhiResidual ); h_ResidualPhi->Fill( jetPhiResidual );
-				m_NormalizedResidualPx.push_back( jetPxResidual / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 0 ] ) );
-				m_NormalizedResidualPy.push_back( jetPyResidual / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 2 ] ) );
-				m_NormalizedResidualPz.push_back( jetPzResidual / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 5 ] ) );
-				m_NormalizedResidualE.push_back( jetEnergyResidual / jetSigmaE );
-				m_NormalizedResidualTheta.push_back( jetThetaResidual / jetSigmaTheta );
-				m_NormalizedResidualPhi.push_back( jetPhiResidual / jetSigmaPhi );
-				h_NormalizedResidualPx->Fill( jetPxResidual / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 0 ] ) );
-				h_NormalizedResidualPy->Fill( jetPyResidual / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 2 ] ) );
-				h_NormalizedResidualPz->Fill( jetPzResidual / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 5 ] ) );
-				h_NormalizedResidualE->Fill( jetEnergyResidual / jetSigmaE );
-				h_NormalizedResidualTheta->Fill( jetThetaResidual / jetSigmaTheta );
-				h_NormalizedResidualPhi->Fill( jetPhiResidual / jetSigmaPhi );
-				m_ResidualPxSeen.push_back( jetPxResidualSeen ); h_ResidualPxSeen->Fill( jetPxResidualSeen );
-				m_ResidualPySeen.push_back( jetPyResidualSeen ); h_ResidualPySeen->Fill( jetPyResidualSeen );
-				m_ResidualPzSeen.push_back( jetPzResidualSeen ); h_ResidualPzSeen->Fill( jetPzResidualSeen );
-				m_ResidualESeen.push_back( jetEnergyResidualSeen ); h_ResidualESeen->Fill( jetEnergyResidualSeen );
-				m_ResidualThetaSeen.push_back( jetThetaResidualSeen ); h_ResidualThetaSeen->Fill( jetThetaResidualSeen );
-				m_ResidualPhiSeen.push_back( jetPhiResidualSeen ); h_ResidualPhiSeen->Fill( jetPhiResidualSeen );
-				m_NormalizedResidualPxSeen.push_back( jetPxResidualSeen / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 0 ] ) );
-				m_NormalizedResidualPySeen.push_back( jetPyResidualSeen / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 2 ] ) );
-				m_NormalizedResidualPzSeen.push_back( jetPzResidualSeen / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 5 ] ) );
-				m_NormalizedResidualESeen.push_back( jetEnergyResidualSeen / jetSigmaE );
-				m_NormalizedResidualThetaSeen.push_back( jetThetaResidualSeen / jetSigmaTheta );
-				m_NormalizedResidualPhiSeen.push_back( jetPhiResidualSeen / jetSigmaPhi );
-				h_NormalizedResidualPxSeen->Fill( jetPxResidualSeen / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 0 ] ) );
-				h_NormalizedResidualPySeen->Fill( jetPyResidualSeen / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 2 ] ) );
-				h_NormalizedResidualPzSeen->Fill( jetPzResidualSeen / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 5 ] ) );
-				h_NormalizedResidualESeen->Fill( jetEnergyResidualSeen / jetSigmaE );
-				h_NormalizedResidualThetaSeen->Fill( jetThetaResidualSeen / jetSigmaTheta );
-				h_NormalizedResidualPhiSeen->Fill( jetPhiResidualSeen / jetSigmaPhi );
+				m_ResidualJetPx.push_back( jetPxResidual ); h_ResidualJetPx->Fill( jetPxResidual );
+				m_ResidualJetPy.push_back( jetPyResidual ); h_ResidualJetPy->Fill( jetPyResidual );
+				m_ResidualJetPz.push_back( jetPzResidual ); h_ResidualJetPz->Fill( jetPzResidual );
+				m_ResidualJetE.push_back( jetEnergyResidual ); h_ResidualJetE->Fill( jetEnergyResidual );
+				m_ResidualJetTheta.push_back( jetThetaResidual ); h_ResidualJetTheta->Fill( jetThetaResidual );
+				m_ResidualJetPhi.push_back( jetPhiResidual ); h_ResidualJetPhi->Fill( jetPhiResidual );
+				m_NormalizedResidualJetPx.push_back( jetPxResidual / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 0 ] ) );
+				m_NormalizedResidualJetPy.push_back( jetPyResidual / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 2 ] ) );
+				m_NormalizedResidualJetPz.push_back( jetPzResidual / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 5 ] ) );
+				m_NormalizedResidualJetE.push_back( jetEnergyResidual / jetSigmaE );
+				m_NormalizedResidualJetTheta.push_back( jetThetaResidual / jetSigmaTheta );
+				m_NormalizedResidualJetPhi.push_back( jetPhiResidual / jetSigmaPhi );
+				h_NormalizedResidualJetPx->Fill( jetPxResidual / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 0 ] ) );
+				h_NormalizedResidualJetPy->Fill( jetPyResidual / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 2 ] ) );
+				h_NormalizedResidualJetPz->Fill( jetPzResidual / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 5 ] ) );
+				h_NormalizedResidualJetE->Fill( jetEnergyResidual / jetSigmaE );
+				h_NormalizedResidualJetTheta->Fill( jetThetaResidual / jetSigmaTheta );
+				h_NormalizedResidualJetPhi->Fill( jetPhiResidual / jetSigmaPhi );
+				m_ResidualJetPxSeen.push_back( jetPxResidualSeen ); h_ResidualJetPxSeen->Fill( jetPxResidualSeen );
+				m_ResidualJetPySeen.push_back( jetPyResidualSeen ); h_ResidualJetPySeen->Fill( jetPyResidualSeen );
+				m_ResidualJetPzSeen.push_back( jetPzResidualSeen ); h_ResidualJetPzSeen->Fill( jetPzResidualSeen );
+				m_ResidualJetESeen.push_back( jetEnergyResidualSeen ); h_ResidualJetESeen->Fill( jetEnergyResidualSeen );
+				m_ResidualJetThetaSeen.push_back( jetThetaResidualSeen ); h_ResidualJetThetaSeen->Fill( jetThetaResidualSeen );
+				m_ResidualJetPhiSeen.push_back( jetPhiResidualSeen ); h_ResidualJetPhiSeen->Fill( jetPhiResidualSeen );
+				m_NormalizedResidualJetPxSeen.push_back( jetPxResidualSeen / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 0 ] ) );
+				m_NormalizedResidualJetPySeen.push_back( jetPyResidualSeen / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 2 ] ) );
+				m_NormalizedResidualJetPzSeen.push_back( jetPzResidualSeen / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 5 ] ) );
+				m_NormalizedResidualJetESeen.push_back( jetEnergyResidualSeen / jetSigmaE );
+				m_NormalizedResidualJetThetaSeen.push_back( jetThetaResidualSeen / jetSigmaTheta );
+				m_NormalizedResidualJetPhiSeen.push_back( jetPhiResidualSeen / jetSigmaPhi );
+				h_NormalizedResidualJetPxSeen->Fill( jetPxResidualSeen / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 0 ] ) );
+				h_NormalizedResidualJetPySeen->Fill( jetPyResidualSeen / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 2 ] ) );
+				h_NormalizedResidualJetPzSeen->Fill( jetPzResidualSeen / std::sqrt( recoJetVector[ i_jet ]->getCovMatrix()[ 5 ] ) );
+				h_NormalizedResidualJetESeen->Fill( jetEnergyResidualSeen / jetSigmaE );
+				h_NormalizedResidualJetThetaSeen->Fill( jetThetaResidualSeen / jetSigmaTheta );
+				h_NormalizedResidualJetPhiSeen->Fill( jetPhiResidualSeen / jetSigmaPhi );
 			}
 		}
+
+		std::vector<ReconstructedParticle*> recoIsoLepVector{};
+		std::vector<int> trueIsoLepVectorIndex{};
+		for ( int i_isoLep = 0 ; i_isoLep < m_nIsoLeptons ; ++i_isoLep )
+		{
+			ReconstructedParticle *recoIsoLep = dynamic_cast<ReconstructedParticle*>( isoLepCol->getElementAt( i_isoLep ) );
+			streamlog_out(DEBUG4) << "	Finding closest trueIsoLep to recoIsoLep[ " << i_isoLep << " ]" << std::endl;
+			TVector3 recoIsoLepDirection( recoIsoLep->getMomentum() ); recoIsoLepDirection.SetMag( 1.0 );
+			streamlog_out(DEBUG4) << "		Direction of recoIsoLep (Ux,Uy,Uz):	" << recoIsoLepDirection.X() << " , " << recoIsoLepDirection.Y() << " , " << recoIsoLepDirection.Z() << std::endl;
+			double cosMaxAngle = -1.0;
+			int i_matchedtrueIsoLep = -1;
+			for ( int i_trueIsoLep = 0 ; i_trueIsoLep < njets ; ++i_trueIsoLep )
+			{
+				if ( type_jet( i_trueIsoLep ) == 2 )
+				{
+					TVector3 trueIsoLepDirection( initial_elementon( i_trueIsoLep )->getMomentum() ); trueIsoLepDirection.SetMag( 1.0 );
+					streamlog_out(DEBUG4) << "		Checking trueIsoLep[ " << i_trueIsoLep << " ] with Type: " << type_jet( i_trueIsoLep ) << std::endl;
+					streamlog_out(DEBUG4) << "		Direction of trueIsoLep (Ux,Uy,Uz):	" << trueIsoLepDirection.X() << " , " << trueIsoLepDirection.Y() << " , " << trueIsoLepDirection.Z() << std::endl;
+					if ( recoIsoLepDirection.Dot( trueIsoLepDirection ) > cosMaxAngle )
+					{
+						bool trueIsoLepExist = false;
+						for ( unsigned int i_lep = 0 ; i_lep < trueIsoLepVectorIndex.size() ; ++i_lep )
+						{
+							if ( initial_elementon( trueIsoLepVectorIndex[ i_lep ] ) == initial_elementon( i_trueIsoLep ) ) trueIsoLepExist = true;
+						}
+						if ( !trueIsoLepExist )
+						{
+							cosMaxAngle = recoIsoLepDirection.Dot( trueIsoLepDirection );
+							i_matchedtrueIsoLep = i_trueIsoLep;
+						}
+					}
+				}
+			}
+			if ( i_matchedtrueIsoLep != -1 )
+			{
+				recoIsoLepVector.push_back( recoIsoLep );
+				trueIsoLepVectorIndex.push_back( i_matchedtrueIsoLep );
+				++m_nTrueIsoLeps;
+				streamlog_out(DEBUG2) << " The index of trueIsoLep with lowest angle to recoIsoLep [ " << i_isoLep << " ]: " << i_matchedtrueIsoLep << " , trueIsoLep Type = " << type_jet( i_matchedtrueIsoLep ) << std::endl;
+			}
+		}
+		streamlog_out(DEBUG8) << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
+		streamlog_out(DEBUG4) << "	" << recoIsoLepVector.size() << " reco IsoLeptons and " << trueIsoLepVectorIndex.size() << " true IsoLeptons are found and matched" << std::endl;
+		streamlog_out(DEBUG8) << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
+		for ( unsigned int i_lep = 0 ; i_lep < recoIsoLepVector.size() ; ++i_lep )
+		{
+			TLorentzVector initial_elementFourMomentum( initial_elementon( trueIsoLepVectorIndex[ i_lep ] )->getMomentum() , initial_elementon( trueIsoLepVectorIndex[ i_lep ] )->getEnergy() );
+			TLorentzVector trueIsoLepFourMomentum( initial_elementon( trueIsoLepVectorIndex[ i_lep ] )->getMomentum() , initial_elementon( trueIsoLepVectorIndex[ i_lep ] )->getEnergy() );
+			TLorentzVector seenIsoLepFourMomentum( 0.0 , 0.0 , 0.0 , 0.0 );
+			TLorentzVector recoIsoLepFourMomentum( recoIsoLepVector[ i_lep ]->getMomentum() , recoIsoLepVector[ i_lep ]->getEnergy() );
+			for ( int i_trueIsoLep = 0 ; i_trueIsoLep < trueJet->njets() ; ++i_trueIsoLep )
+			{
+				if ( initial_elementon( trueIsoLepVectorIndex[ i_lep ] ) == initial_elementon( i_trueIsoLep ) )
+				{
+					for ( unsigned int i_par = 0; i_par < seen_partics( i_trueIsoLep ).size() ; ++i_par )
+					{
+						seenIsoLepFourMomentum += TLorentzVector( ( seen_partics( i_trueIsoLep )[ i_par ] )->getMomentum() , ( seen_partics( i_trueIsoLep )[ i_par ] )->getEnergy() );
+					}
+				}
+			}
+
+			streamlog_out(DEBUG4) << "----------------------------------------------------------------------------------------------------------------" << std::endl;
+			streamlog_out(DEBUG4) << "Reconstructed IsoLep[ " << i_lep << " ] matches true IsoLep [ " << trueIsoLepVectorIndex[ i_lep ] << " ]" << std::endl;
+			streamlog_out(DEBUG4) << "Four-Momenta using siblings" << std::endl;
+			streamlog_out(DEBUG4) << "	trueIsoLep TYPE:	" << type_jet( trueIsoLepVectorIndex[ i_lep ] ) << std::endl;
+			streamlog_out(DEBUG4) << "	initial_element (Px,Py,Pz,E):	" << initial_elementon( trueIsoLepVectorIndex[ i_lep ] )->getMomentum()[ 0 ] << " , " << initial_elementon( trueIsoLepVectorIndex[ i_lep ] )->getMomentum()[ 1 ] << " , " << initial_elementon( trueIsoLepVectorIndex[ i_lep ] )->getMomentum()[ 2 ] << " , " << initial_elementon( trueIsoLepVectorIndex[ i_lep ] )->getEnergy() << std::endl;
+			streamlog_out(DEBUG4) << "	trueIsoLep (Px,Py,Pz,E):		" << trueIsoLepFourMomentum.Px() << " , " << trueIsoLepFourMomentum.Py() << " , " << trueIsoLepFourMomentum.Pz() << " , " << trueIsoLepFourMomentum.E() << std::endl;
+			streamlog_out(DEBUG4) << "	seenIsoLep (Px,Py,Pz,E):		" << seenIsoLepFourMomentum.Px() << " , " << seenIsoLepFourMomentum.Py() << " , " << seenIsoLepFourMomentum.Pz() << " , " << seenIsoLepFourMomentum.E() << std::endl;
+			streamlog_out(DEBUG4) << "	recoIsoLep (Px,Py,Pz,E):		" << recoIsoLepFourMomentum.Px() << " , " << recoIsoLepFourMomentum.Py() << " , " << recoIsoLepFourMomentum.Pz() << " , " << recoIsoLepFourMomentum.E() << std::endl;
+			streamlog_out(DEBUG4) << "" << std::endl;
+			streamlog_out(DEBUG3) << "	recoIsoLep[ " << i_lep << " ]:" << std::endl;
+			streamlog_out(DEBUG3) << *recoIsoLepVector[ i_lep ] << std::endl;
+			streamlog_out(DEBUG4) << "" << std::endl;
+			m_trueIsoLepType.push_back( type_jet( trueIsoLepVectorIndex[ i_lep ] ) );
+
+			TVector3 isoLepTrueMomentum = trueIsoLepFourMomentum.Vect(); double isoLepTrueEnergy = trueIsoLepFourMomentum.E();
+			TVector3 isoLepSeenMomentum = seenIsoLepFourMomentum.Vect(); double isoLepSeenEnergy = seenIsoLepFourMomentum.E();
+			TVector3 isoLepRecoMomentum = recoIsoLepFourMomentum.Vect(); double isoLepRecoEnergy = recoIsoLepFourMomentum.E();
+			double isoLepPxResidual , isoLepPyResidual , isoLepPzResidual , isoLepEnergyResidual , isoLepThetaResidual , isoLepPhiResidual;
+			double isoLepPxResidualSeen , isoLepPyResidualSeen , isoLepPzResidualSeen , isoLepEnergyResidualSeen , isoLepThetaResidualSeen , isoLepPhiResidualSeen;
+			double isoLepSigmaE , isoLepSigmaTheta , isoLepSigmaPhi;
+			getResiduals( isoLepTrueMomentum , isoLepTrueEnergy , isoLepRecoMomentum , isoLepRecoEnergy , isoLepPxResidual , isoLepPyResidual , isoLepPzResidual , isoLepEnergyResidual , isoLepThetaResidual , isoLepPhiResidual );
+			getResiduals( isoLepSeenMomentum , isoLepSeenEnergy , isoLepRecoMomentum , isoLepRecoEnergy , isoLepPxResidualSeen , isoLepPyResidualSeen , isoLepPzResidualSeen , isoLepEnergyResidualSeen , isoLepThetaResidualSeen , isoLepPhiResidualSeen );
+			getResolutions( TLorentzVector( isoLepRecoMomentum , isoLepRecoEnergy ) , recoIsoLepVector[ i_lep ]->getCovMatrix() , isoLepSigmaE , isoLepSigmaTheta , isoLepSigmaPhi );
+			if ( m_fillRootTree )
+			{
+				m_trueIsoLepPx.push_back( isoLepTrueMomentum.Px() );		m_trueIsoLepPy.push_back( isoLepTrueMomentum.Py() );			m_trueIsoLepPz.push_back( isoLepTrueMomentum.Pz() );
+				m_trueIsoLepE.push_back( isoLepTrueEnergy );			m_trueIsoLepTheta.push_back( isoLepTrueMomentum.Theta() );		m_trueIsoLepPhi.push_back( isoLepTrueMomentum.Phi() );
+				m_seenIsoLepPx.push_back( isoLepSeenMomentum.Px() );		m_seenIsoLepPy.push_back( isoLepSeenMomentum.Py() );			m_seenIsoLepPz.push_back( isoLepSeenMomentum.Pz() );
+				m_seenIsoLepE.push_back( isoLepSeenEnergy );			m_seenIsoLepTheta.push_back( isoLepSeenMomentum.Theta() );		m_seenIsoLepPhi.push_back( isoLepSeenMomentum.Phi() );
+				m_recoIsoLepPx.push_back( isoLepRecoMomentum.Px() );		m_recoIsoLepPy.push_back( isoLepRecoMomentum.Py() );			m_recoIsoLepPz.push_back( isoLepRecoMomentum.Pz() );
+				m_recoIsoLepE.push_back( isoLepRecoEnergy );			m_recoIsoLepTheta.push_back( isoLepRecoMomentum.Theta() );		m_recoIsoLepPhi.push_back( isoLepRecoMomentum.Phi() );
+				m_isoLepSigmaPx2.push_back( recoIsoLepVector[ i_lep ]->getCovMatrix()[ 0 ] );
+				m_isoLepSigmaPxPy.push_back( recoIsoLepVector[ i_lep ]->getCovMatrix()[ 1 ] );
+				m_isoLepSigmaPy2.push_back( recoIsoLepVector[ i_lep ]->getCovMatrix()[ 2 ] );
+				m_isoLepSigmaPxPz.push_back( recoIsoLepVector[ i_lep ]->getCovMatrix()[ 3 ] );
+				m_isoLepSigmaPyPz.push_back( recoIsoLepVector[ i_lep ]->getCovMatrix()[ 4 ] );
+				m_isoLepSigmaPz2.push_back( recoIsoLepVector[ i_lep ]->getCovMatrix()[ 5 ] );
+				m_isoLepSigmaPxE.push_back( recoIsoLepVector[ i_lep ]->getCovMatrix()[ 6 ] );
+				m_isoLepSigmaPyE.push_back( recoIsoLepVector[ i_lep ]->getCovMatrix()[ 7 ] );
+				m_isoLepSigmaPzE.push_back( recoIsoLepVector[ i_lep ]->getCovMatrix()[ 8 ] );
+				m_isoLepSigmaE2.push_back( recoIsoLepVector[ i_lep ]->getCovMatrix()[ 9 ] );
+				m_isoLepSigmaTheta2.push_back( pow( isoLepSigmaTheta , 2 ) );
+				m_isoLepSigmaPhi2.push_back( pow( isoLepSigmaPhi , 2 ) );
+				m_ResidualIsoLepPx.push_back( isoLepPxResidual ); h_ResidualIsoLepPx->Fill( isoLepPxResidual );
+				m_ResidualIsoLepPy.push_back( isoLepPyResidual ); h_ResidualIsoLepPy->Fill( isoLepPyResidual );
+				m_ResidualIsoLepPz.push_back( isoLepPzResidual ); h_ResidualIsoLepPz->Fill( isoLepPzResidual );
+				m_ResidualIsoLepE.push_back( isoLepEnergyResidual ); h_ResidualIsoLepE->Fill( isoLepEnergyResidual );
+				m_ResidualIsoLepTheta.push_back( isoLepThetaResidual ); h_ResidualIsoLepTheta->Fill( isoLepThetaResidual );
+				m_ResidualIsoLepPhi.push_back( isoLepPhiResidual ); h_ResidualIsoLepPhi->Fill( isoLepPhiResidual );
+				m_NormalizedResidualIsoLepPx.push_back( isoLepPxResidual / std::sqrt( recoIsoLepVector[ i_lep ]->getCovMatrix()[ 0 ] ) );
+				m_NormalizedResidualIsoLepPy.push_back( isoLepPyResidual / std::sqrt( recoIsoLepVector[ i_lep ]->getCovMatrix()[ 2 ] ) );
+				m_NormalizedResidualIsoLepPz.push_back( isoLepPzResidual / std::sqrt( recoIsoLepVector[ i_lep ]->getCovMatrix()[ 5 ] ) );
+				m_NormalizedResidualIsoLepE.push_back( isoLepEnergyResidual / isoLepSigmaE );
+				m_NormalizedResidualIsoLepTheta.push_back( isoLepThetaResidual / isoLepSigmaTheta );
+				m_NormalizedResidualIsoLepPhi.push_back( isoLepPhiResidual / isoLepSigmaPhi );
+				h_NormalizedResidualIsoLepPx->Fill( isoLepPxResidual / std::sqrt( recoIsoLepVector[ i_lep ]->getCovMatrix()[ 0 ] ) );
+				h_NormalizedResidualIsoLepPy->Fill( isoLepPyResidual / std::sqrt( recoIsoLepVector[ i_lep ]->getCovMatrix()[ 2 ] ) );
+				h_NormalizedResidualIsoLepPz->Fill( isoLepPzResidual / std::sqrt( recoIsoLepVector[ i_lep ]->getCovMatrix()[ 5 ] ) );
+				h_NormalizedResidualIsoLepE->Fill( isoLepEnergyResidual / isoLepSigmaE );
+				h_NormalizedResidualIsoLepTheta->Fill( isoLepThetaResidual / isoLepSigmaTheta );
+				h_NormalizedResidualIsoLepPhi->Fill( isoLepPhiResidual / isoLepSigmaPhi );
+				m_ResidualIsoLepPxSeen.push_back( isoLepPxResidualSeen ); h_ResidualIsoLepPxSeen->Fill( isoLepPxResidualSeen );
+				m_ResidualIsoLepPySeen.push_back( isoLepPyResidualSeen ); h_ResidualIsoLepPySeen->Fill( isoLepPyResidualSeen );
+				m_ResidualIsoLepPzSeen.push_back( isoLepPzResidualSeen ); h_ResidualIsoLepPzSeen->Fill( isoLepPzResidualSeen );
+				m_ResidualIsoLepESeen.push_back( isoLepEnergyResidualSeen ); h_ResidualIsoLepESeen->Fill( isoLepEnergyResidualSeen );
+				m_ResidualIsoLepThetaSeen.push_back( isoLepThetaResidualSeen ); h_ResidualIsoLepThetaSeen->Fill( isoLepThetaResidualSeen );
+				m_ResidualIsoLepPhiSeen.push_back( isoLepPhiResidualSeen ); h_ResidualIsoLepPhiSeen->Fill( isoLepPhiResidualSeen );
+				m_NormalizedResidualIsoLepPxSeen.push_back( isoLepPxResidualSeen / std::sqrt( recoIsoLepVector[ i_lep ]->getCovMatrix()[ 0 ] ) );
+				m_NormalizedResidualIsoLepPySeen.push_back( isoLepPyResidualSeen / std::sqrt( recoIsoLepVector[ i_lep ]->getCovMatrix()[ 2 ] ) );
+				m_NormalizedResidualIsoLepPzSeen.push_back( isoLepPzResidualSeen / std::sqrt( recoIsoLepVector[ i_lep ]->getCovMatrix()[ 5 ] ) );
+				m_NormalizedResidualIsoLepESeen.push_back( isoLepEnergyResidualSeen / isoLepSigmaE );
+				m_NormalizedResidualIsoLepThetaSeen.push_back( isoLepThetaResidualSeen / isoLepSigmaTheta );
+				m_NormalizedResidualIsoLepPhiSeen.push_back( isoLepPhiResidualSeen / isoLepSigmaPhi );
+				h_NormalizedResidualIsoLepPxSeen->Fill( isoLepPxResidualSeen / std::sqrt( recoIsoLepVector[ i_lep ]->getCovMatrix()[ 0 ] ) );
+				h_NormalizedResidualIsoLepPySeen->Fill( isoLepPyResidualSeen / std::sqrt( recoIsoLepVector[ i_lep ]->getCovMatrix()[ 2 ] ) );
+				h_NormalizedResidualIsoLepPzSeen->Fill( isoLepPzResidualSeen / std::sqrt( recoIsoLepVector[ i_lep ]->getCovMatrix()[ 5 ] ) );
+				h_NormalizedResidualIsoLepESeen->Fill( isoLepEnergyResidualSeen / isoLepSigmaE );
+				h_NormalizedResidualIsoLepThetaSeen->Fill( isoLepThetaResidualSeen / isoLepSigmaTheta );
+				h_NormalizedResidualIsoLepPhiSeen->Fill( isoLepPhiResidualSeen / isoLepSigmaPhi );
+			}
+		}
+
 		m_nEvtSum++;
 		m_nEvt++ ;
 		if( m_fillRootTree ) m_pTTree->Fill();
@@ -786,7 +1060,7 @@ void JetErrorAnalysis::processEvent( LCEvent* pLCEvent)
 
 }
 
-void JetErrorAnalysis::getJetResiduals( TVector3 jetTrueMomentum , double jetTrueEnergy , TVector3 jetRecoMomentum , double jetRecoEnergy , double &jetPxResidual , double &jetPyResidual , double &jetPzResidual , double &jetEnergyResidual , double &jetThetaResidual , double &jetPhiResidual )
+void JetErrorAnalysis::getResiduals( TVector3 jetTrueMomentum , double jetTrueEnergy , TVector3 jetRecoMomentum , double jetRecoEnergy , double &jetPxResidual , double &jetPyResidual , double &jetPzResidual , double &jetEnergyResidual , double &jetThetaResidual , double &jetPhiResidual )
 {
 	jetPxResidual = jetRecoMomentum.Px() - jetTrueMomentum.Px();
 	jetPyResidual = jetRecoMomentum.Py() - jetTrueMomentum.Py();
@@ -800,7 +1074,7 @@ void JetErrorAnalysis::getJetResiduals( TVector3 jetTrueMomentum , double jetTru
 	jetPhiResidual = ( jetRecoMomentum.Phi() >= jetTrueMomentum.Phi() ? acos( jetTruePtUnit.Dot( jetRecoPtUnit ) ) : -1.0 * acos( jetTruePtUnit.Dot( jetRecoPtUnit ) ) );
 }
 
-void JetErrorAnalysis::getJetResolutions(	TLorentzVector jetFourMomentum , std::vector<float> jetCovMat , double &sigmaE , double &sigmaTheta , double &sigmaPhi )
+void JetErrorAnalysis::getResolutions(	TLorentzVector jetFourMomentum , std::vector<float> jetCovMat , double &sigmaE , double &sigmaTheta , double &sigmaPhi )
 {
 	float Px , Py , Pz , P2 , Pt , Pt2;
 	float dTheta_dPx , dTheta_dPy , dTheta_dPz , dPhi_dPx , dPhi_dPy;
@@ -1049,55 +1323,105 @@ void JetErrorAnalysis::end()
 	{
 		m_pTFile->cd();
 		m_pTTree->Write();
-		h_ResidualPx->SetName( m_histName.c_str() );
-		h_ResidualPy->SetName( m_histName.c_str() );
-		h_ResidualPz->SetName( m_histName.c_str() );
-		h_ResidualE->SetName( m_histName.c_str() );
-		h_ResidualTheta->SetName( m_histName.c_str() );
-		h_ResidualPhi->SetName( m_histName.c_str() );
-		h_NormalizedResidualPx->SetName( m_histName.c_str() );
-		h_NormalizedResidualPy->SetName( m_histName.c_str() );
-		h_NormalizedResidualPz->SetName( m_histName.c_str() );
-		h_NormalizedResidualE->SetName( m_histName.c_str() );
-		h_NormalizedResidualTheta->SetName( m_histName.c_str() );
-		h_NormalizedResidualPhi->SetName( m_histName.c_str() );
+		h_ResidualJetPx->SetName( m_histName.c_str() );
+		h_ResidualJetPy->SetName( m_histName.c_str() );
+		h_ResidualJetPz->SetName( m_histName.c_str() );
+		h_ResidualJetE->SetName( m_histName.c_str() );
+		h_ResidualJetTheta->SetName( m_histName.c_str() );
+		h_ResidualJetPhi->SetName( m_histName.c_str() );
+		h_NormalizedResidualJetPx->SetName( m_histName.c_str() );
+		h_NormalizedResidualJetPy->SetName( m_histName.c_str() );
+		h_NormalizedResidualJetPz->SetName( m_histName.c_str() );
+		h_NormalizedResidualJetE->SetName( m_histName.c_str() );
+		h_NormalizedResidualJetTheta->SetName( m_histName.c_str() );
+		h_NormalizedResidualJetPhi->SetName( m_histName.c_str() );
 		m_histName = ( m_histName + "(without invisibles)" ).c_str();
-		h_ResidualPxSeen->SetName( m_histName.c_str() );
-		h_ResidualPySeen->SetName( m_histName.c_str() );
-		h_ResidualPzSeen->SetName( m_histName.c_str() );
-		h_ResidualESeen->SetName( m_histName.c_str() );
-		h_ResidualThetaSeen->SetName( m_histName.c_str() );
-		h_ResidualPhiSeen->SetName( m_histName.c_str() );
-		h_NormalizedResidualPxSeen->SetName( m_histName.c_str() );
-		h_NormalizedResidualPySeen->SetName( m_histName.c_str() );
-		h_NormalizedResidualPzSeen->SetName( m_histName.c_str() );
-		h_NormalizedResidualESeen->SetName( m_histName.c_str() );
-		h_NormalizedResidualThetaSeen->SetName( m_histName.c_str() );
-		h_NormalizedResidualPhiSeen->SetName( m_histName.c_str() );
-		InitializeHistogram( h_ResidualPx , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
-		InitializeHistogram( h_ResidualPy , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
-		InitializeHistogram( h_ResidualPz , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
-		InitializeHistogram( h_ResidualE , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
-		InitializeHistogram( h_ResidualTheta , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
-		InitializeHistogram( h_ResidualPhi , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
-		InitializeHistogram( h_NormalizedResidualPx , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
-		InitializeHistogram( h_NormalizedResidualPy , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
-		InitializeHistogram( h_NormalizedResidualPz , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
-		InitializeHistogram( h_NormalizedResidualE , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
-		InitializeHistogram( h_NormalizedResidualTheta , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
-		InitializeHistogram( h_NormalizedResidualPhi , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
-		InitializeHistogram( h_ResidualPxSeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
-		InitializeHistogram( h_ResidualPySeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
-		InitializeHistogram( h_ResidualPzSeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
-		InitializeHistogram( h_ResidualESeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
-		InitializeHistogram( h_ResidualThetaSeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
-		InitializeHistogram( h_ResidualPhiSeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
-		InitializeHistogram( h_NormalizedResidualPxSeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
-		InitializeHistogram( h_NormalizedResidualPySeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
-		InitializeHistogram( h_NormalizedResidualPzSeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
-		InitializeHistogram( h_NormalizedResidualESeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
-		InitializeHistogram( h_NormalizedResidualThetaSeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
-		InitializeHistogram( h_NormalizedResidualPhiSeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
+		h_ResidualJetPxSeen->SetName( m_histName.c_str() );
+		h_ResidualJetPySeen->SetName( m_histName.c_str() );
+		h_ResidualJetPzSeen->SetName( m_histName.c_str() );
+		h_ResidualJetESeen->SetName( m_histName.c_str() );
+		h_ResidualJetThetaSeen->SetName( m_histName.c_str() );
+		h_ResidualJetPhiSeen->SetName( m_histName.c_str() );
+		h_NormalizedResidualJetPxSeen->SetName( m_histName.c_str() );
+		h_NormalizedResidualJetPySeen->SetName( m_histName.c_str() );
+		h_NormalizedResidualJetPzSeen->SetName( m_histName.c_str() );
+		h_NormalizedResidualJetESeen->SetName( m_histName.c_str() );
+		h_NormalizedResidualJetThetaSeen->SetName( m_histName.c_str() );
+		h_NormalizedResidualJetPhiSeen->SetName( m_histName.c_str() );
+		InitializeHistogram( h_ResidualJetPx , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
+		InitializeHistogram( h_ResidualJetPy , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
+		InitializeHistogram( h_ResidualJetPz , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
+		InitializeHistogram( h_ResidualJetE , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
+		InitializeHistogram( h_ResidualJetTheta , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
+		InitializeHistogram( h_ResidualJetPhi , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
+		InitializeHistogram( h_NormalizedResidualJetPx , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
+		InitializeHistogram( h_NormalizedResidualJetPy , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
+		InitializeHistogram( h_NormalizedResidualJetPz , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
+		InitializeHistogram( h_NormalizedResidualJetE , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
+		InitializeHistogram( h_NormalizedResidualJetTheta , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
+		InitializeHistogram( h_NormalizedResidualJetPhi , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
+		InitializeHistogram( h_ResidualJetPxSeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
+		InitializeHistogram( h_ResidualJetPySeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
+		InitializeHistogram( h_ResidualJetPzSeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
+		InitializeHistogram( h_ResidualJetESeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
+		InitializeHistogram( h_ResidualJetThetaSeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
+		InitializeHistogram( h_ResidualJetPhiSeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
+		InitializeHistogram( h_NormalizedResidualJetPxSeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
+		InitializeHistogram( h_NormalizedResidualJetPySeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
+		InitializeHistogram( h_NormalizedResidualJetPzSeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
+		InitializeHistogram( h_NormalizedResidualJetESeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
+		InitializeHistogram( h_NormalizedResidualJetThetaSeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
+		InitializeHistogram( h_NormalizedResidualJetPhiSeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
+		m_histName = "IsolatedLepton(Reco-True)";
+		h_ResidualIsoLepPx->SetName( m_histName.c_str() );
+		h_ResidualIsoLepPy->SetName( m_histName.c_str() );
+		h_ResidualIsoLepPz->SetName( m_histName.c_str() );
+		h_ResidualIsoLepE->SetName( m_histName.c_str() );
+		h_ResidualIsoLepTheta->SetName( m_histName.c_str() );
+		h_ResidualIsoLepPhi->SetName( m_histName.c_str() );
+		h_NormalizedResidualIsoLepPx->SetName( m_histName.c_str() );
+		h_NormalizedResidualIsoLepPy->SetName( m_histName.c_str() );
+		h_NormalizedResidualIsoLepPz->SetName( m_histName.c_str() );
+		h_NormalizedResidualIsoLepE->SetName( m_histName.c_str() );
+		h_NormalizedResidualIsoLepTheta->SetName( m_histName.c_str() );
+		h_NormalizedResidualIsoLepPhi->SetName( m_histName.c_str() );
+		m_histName = "IsolatedLepton(Reco-Seen)";
+		h_ResidualIsoLepPxSeen->SetName( m_histName.c_str() );
+		h_ResidualIsoLepPySeen->SetName( m_histName.c_str() );
+		h_ResidualIsoLepPzSeen->SetName( m_histName.c_str() );
+		h_ResidualIsoLepESeen->SetName( m_histName.c_str() );
+		h_ResidualIsoLepThetaSeen->SetName( m_histName.c_str() );
+		h_ResidualIsoLepPhiSeen->SetName( m_histName.c_str() );
+		h_NormalizedResidualIsoLepPxSeen->SetName( m_histName.c_str() );
+		h_NormalizedResidualIsoLepPySeen->SetName( m_histName.c_str() );
+		h_NormalizedResidualIsoLepPzSeen->SetName( m_histName.c_str() );
+		h_NormalizedResidualIsoLepESeen->SetName( m_histName.c_str() );
+		h_NormalizedResidualIsoLepThetaSeen->SetName( m_histName.c_str() );
+		h_NormalizedResidualIsoLepPhiSeen->SetName( m_histName.c_str() );
+		InitializeHistogram( h_ResidualIsoLepPx , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
+		InitializeHistogram( h_ResidualIsoLepPy , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
+		InitializeHistogram( h_ResidualIsoLepPz , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
+		InitializeHistogram( h_ResidualIsoLepE , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
+		InitializeHistogram( h_ResidualIsoLepTheta , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
+		InitializeHistogram( h_ResidualIsoLepPhi , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
+		InitializeHistogram( h_NormalizedResidualIsoLepPx , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
+		InitializeHistogram( h_NormalizedResidualIsoLepPy , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
+		InitializeHistogram( h_NormalizedResidualIsoLepPz , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
+		InitializeHistogram( h_NormalizedResidualIsoLepE , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
+		InitializeHistogram( h_NormalizedResidualIsoLepTheta , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
+		InitializeHistogram( h_NormalizedResidualIsoLepPhi , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , true );
+		InitializeHistogram( h_ResidualIsoLepPxSeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
+		InitializeHistogram( h_ResidualIsoLepPySeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
+		InitializeHistogram( h_ResidualIsoLepPzSeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
+		InitializeHistogram( h_ResidualIsoLepESeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
+		InitializeHistogram( h_ResidualIsoLepThetaSeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
+		InitializeHistogram( h_ResidualIsoLepPhiSeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
+		InitializeHistogram( h_NormalizedResidualIsoLepPxSeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
+		InitializeHistogram( h_NormalizedResidualIsoLepPySeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
+		InitializeHistogram( h_NormalizedResidualIsoLepPzSeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
+		InitializeHistogram( h_NormalizedResidualIsoLepESeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
+		InitializeHistogram( h_NormalizedResidualIsoLepThetaSeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
+		InitializeHistogram( h_NormalizedResidualIsoLepPhiSeen , m_normalizeHistograms , m_histColour , 1 , 1.0 , 1 , false );
 		m_pTFile->Close();
 		delete m_pTFile;
 	}
